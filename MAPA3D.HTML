@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Laguna de Humboldt - Automática</title>
+
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
+                   script-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
+                   style-src * 'unsafe-inline';
+                   img-src * data: blob:;
+                   worker-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
+                   frame-src * data: blob:;
+                   connect-src * wss: ws: data: blob:;
+                   font-src * data:;
+                   object-src 'none';
+                   base-uri 'self';
+                   form-action 'self';">
+
+    <script>
+        var CESIUM_VERSION = '1.104'; 
+        window.CESIUM_BASE_URL = `https://cesium.com/downloads/cesiumjs/releases/${CESIUM_VERSION}/Build/Cesium/`;
+    </script>
+
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
+    <style>
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Inter', sans-serif; }
+        #cesiumContainer { width: 100%; height: 100%; background-color: #1a202c; }
+        
+        /* Cursor Inspector */
+        .cursor-probe {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9); color: #4ade80; padding: 12px 24px;
+            border-radius: 8px; font-family: 'Inter', monospace; font-weight: 600; font-size: 16px;
+            z-index: 4001; pointer-events: none; border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4); display: none; white-space: nowrap;
+        }
+
+        /* Controles Flotantes Simplificados */
+        .water-controls {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px);
+            padding: 20px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white; z-index: 4000; width: 320px;
+            box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.6);
+        }
+        
+        .control-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;
+        }
+        .control-title { font-size: 1.1em; font-weight: 700; color: #38bdf8; }
+        
+        .meter-display {
+            background: rgba(15, 23, 42, 0.8); border-radius: 12px; padding: 10px;
+            text-align: center; margin-bottom: 15px; border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        .current-height { font-size: 2em; font-weight: 800; line-height: 1; color: #fff; }
+        .unit { font-size: 0.8em; color: #94a3b8; display: block; }
+        
+        label { font-size: 0.85em; color: #cbd5e1; display: block; margin-bottom: 8px; font-weight: 500; }
+        
+        input[type=range] {
+            width: 100%; -webkit-appearance: none; background: rgba(255,255,255,0.1);
+            height: 6px; border-radius: 4px; outline: none; margin-bottom: 15px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 18px; height: 18px; background: #38bdf8;
+            border: 2px solid #0f172a; border-radius: 50%; cursor: pointer;
+        }
+
+        /* Indicador de Corrección */
+        .auto-fix-badge {
+            background: rgba(16, 185, 129, 0.15); color: #34d399;
+            padding: 8px; border-radius: 6px; font-size: 0.75em;
+            display: flex; align-items: center; gap: 8px; border: 1px solid rgba(16, 185, 129, 0.3);
+            margin-top: 15px;
+        }
+
+        .status-message { 
+            position: absolute; top: 20px; left: 20px; 
+            background-color: rgba(15, 23, 42, 0.95); color: #fff; padding: 15px 20px; border-radius: 8px; 
+            z-index: 3000; font-size: 14px; border-left: 4px solid #10b981;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3); transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="cursorProbe" class="cursor-probe">
+        <span id="probeIcon">📍</span> <span id="probeValue">--</span>
+    </div>
+
+    <div class="water-controls">
+        <div class="control-header">
+            <span class="control-title">Laguna de Humboldt</span>
+        </div>
+        
+        <div class="meter-display">
+            <span id="heightDisplay" class="current-height">2650</span>
+            <span class="unit">Nivel de Inundación (MSNM)</span>
+        </div>
+        
+        <label>💧 Subir/Bajar Agua</label>
+        <input type="range" id="waterSlider" min="2500" max="2800" step="1" value="2650">
+
+        <label style="color:#fbbf24; font-size:0.8em;">🔧 Calibración (Ajuste Global)</label>
+        <!-- Rango actualizado para permitir ajuste desde 0 -->
+        <input type="range" id="offsetSlider" min="0" max="300" step="1" value="217">
+        <div style="text-align:right; font-size:0.75em; color:#fbbf24; margin-top:-10px;" id="offsetVal">+217m</div>
+
+        <div class="auto-fix-badge">
+            <span>✅</span>
+            <div>
+                <strong>Curvatura Corregida</strong><br>
+                Se aplica compensación automática hacia el Occidente (-80m/grado).
+            </div>
+        </div>
+    </div>
+
+    <div id="statusMessage" class="status-message">
+        <strong>Listo.</strong><br>
+        <span style="font-size:0.85em; color:#ccc">Sistema geodésico automático aplicado.</span>
+    </div>
+    
+    <div id="cesiumContainer"></div>
+
+    <script>
+        if (typeof Cesium !== 'undefined') {
+            try { Cesium.buildModuleUrl.setBaseUrl(window.CESIUM_BASE_URL); } catch (e) {}
+        }
+
+        window.addEventListener('load', async function() {
+            const statusDiv = document.getElementById('statusMessage');
+            const slider = document.getElementById('waterSlider');
+            const offsetSlider = document.getElementById('offsetSlider');
+            const heightDisplay = document.getElementById('heightDisplay');
+            const offsetVal = document.getElementById('offsetVal');
+            const probeEl = document.getElementById('cursorProbe');
+            const probeValueEl = document.getElementById('probeValue');
+
+            // --- CONFIGURACIÓN AUTOMÁTICA ---
+            let baseHeight = 2650.0;
+            let geoidOffset = 217.0; // Valor que encontraste que funciona en el centro
+            
+            // CENTRO GEOGRÁFICO (Pivote)
+            // Usamos Bogotá oriental como pivote "cero".
+            const PIVOT_LON = -74.0; 
+            
+            // FACTOR DE CORRECCIÓN AUTOMÁTICA
+            // Por cada grado que nos movemos al Oeste, bajamos X metros el agua.
+            // El usuario reportó que el agua estaba "muy alta" en el occidente.
+            // Un valor positivo aquí BAJA el agua hacia el oeste (longitudes negativas).
+            const WEST_CORRECTION_FACTOR = 250.0; // Metros de caída por grado de longitud
+
+            function updateWaterLevelDisplay() {
+                heightDisplay.innerText = baseHeight;
+                offsetVal.innerText = (geoidOffset >= 0 ? "+" : "") + geoidOffset + "m";
+            }
+
+            slider.addEventListener('input', (e) => {
+                baseHeight = parseFloat(e.target.value);
+                updateWaterLevelDisplay();
+            });
+
+            offsetSlider.addEventListener('input', (e) => {
+                geoidOffset = parseFloat(e.target.value);
+                updateWaterLevelDisplay();
+            });
+
+            try {
+                Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMTZiNWVjNi1jZTI3LTRjNjktOTUwMi04NWZlYTdiM2M4ZDIiLCJpZCI6MzAyNTUwLCJpYXQiOjE3NDcyNjA3MDV9.a54xRw4uqeucut0ipo8dcYrycXNHMkq4YtoXThS4taU';
+
+                const terrainProvider = await Cesium.createWorldTerrainAsync({
+                    requestVertexNormals: true, requestWaterMask: true
+                });
+
+                const imageryProvider = new Cesium.ArcGisMapServerImageryProvider({
+                    url : 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer',
+                    enablePickFeatures: false
+                });
+
+                const viewer = new Cesium.Viewer('cesiumContainer', {
+                    terrainProvider: terrainProvider,
+                    imageryProvider: imageryProvider,
+                    baseLayerPicker: false, geocoder: false, animation: false, timeline: false,
+                    fullscreenButton: true, scene3DOnly: false, selectionIndicator: false,
+                    infoBox: false, skyBox: false, skyAtmosphere: false
+                });
+
+                viewer.scene.globe.maximumScreenSpaceError = 1.0; 
+                viewer.scene.globe.enableLighting = true;
+                viewer.scene.globe.depthTestAgainstTerrain = true; 
+                
+                const now = new Date(); now.setUTCHours(14); 
+                viewer.clock.currentTime = Cesium.JulianDate.fromDate(now);
+                viewer.clock.shouldAnimate = false;
+
+                // --- POLÍGONO DEL USUARIO ---
+                const rawCoords = [
+                    -74.26742, 4.55040, -74.27124, 4.57282, -74.29438, 4.59764,
+                    -74.30479, 4.62605, -74.32119, 4.66068, -74.32008, 4.67505,
+                    -74.34487, 4.70449, -74.35930, 4.73394, -74.36164, 4.78033,
+                    -74.39957, 4.81597, -74.40380, 4.85732, -74.37684, 4.86300,
+                    -74.33371, 4.83454, -74.22584, 4.89676, -74.22387, 4.96397,
+                    -74.13305, 5.04260, -74.06573, 5.00989, -73.99388, 5.10462,
+                    -73.88298, 5.19542, -73.79518, 5.15274, -73.76444, 5.10997,
+                    -73.78914, 4.96403, -73.90959, 4.79087, -74.00997, 4.64030,
+                    -74.01528, 4.52313, -74.12434, 4.43651, -74.23778, 4.40496,
+                    -74.29386, 4.44703, -74.26823, 4.55119
+                ];
+
+                // Preprocesar puntos para estructura
+                let polygonPoints = [];
+                for(let i=0; i<rawCoords.length; i+=2){
+                    polygonPoints.push({lon: rawCoords[i], lat: rawCoords[i+1]});
+                }
+
+                // --- FUNCIÓN DE AJUSTE AUTOMÁTICO ---
+                function getAutoCorrectedHierarchy() {
+                    const positions = polygonPoints.map(pt => {
+                        // 1. Calcular distancia al Oeste desde el pivote (Bogotá)
+                        const deltaLon = pt.lon - PIVOT_LON; 
+                        
+                        // 2. Aplicar corrección
+                        const correction = deltaLon * WEST_CORRECTION_FACTOR;
+                        
+                        // 3. Altura Final
+                        const finalHeight = baseHeight + geoidOffset + correction;
+                        
+                        return Cesium.Cartesian3.fromDegrees(pt.lon, pt.lat, finalHeight);
+                    });
+                    return new Cesium.PolygonHierarchy(positions);
+                }
+
+                // Entidad de Agua
+                viewer.entities.add({
+                    polygon: {
+                        hierarchy: new Cesium.CallbackProperty(getAutoCorrectedHierarchy, false),
+                        perPositionHeight: true, // Clave para que la corrección funcione vértice a vértice
+                        material: new Cesium.ColorMaterialProperty(
+                            Cesium.Color.fromCssColorString('#0ea5e9').withAlpha(0.6)
+                        ),
+                        outline: false
+                    }
+                });
+
+                // SONDA (Ahora muestra la altura CORREGIDA en ese punto)
+                const probeHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+                probeHandler.setInputAction(function(movement) {
+                    const ray = viewer.camera.getPickRay(movement.endPosition);
+                    const position = viewer.scene.globe.pick(ray, viewer.scene);
+
+                    if (position) {
+                        // CORRECCIÓN APLICADA AQUÍ: Nombre de variable unificado a 'cartographic'
+                        const cartographic = Cesium.Cartographic.fromCartesian(position);
+                        const rawHeight = cartographic.height.toFixed(0);
+                        const lonDegrees = Cesium.Math.toDegrees(cartographic.longitude);
+                        
+                        probeEl.style.display = 'block';
+                        
+                        // Calcular altura del agua teórica EN ESTE PUNTO EXACTO
+                        const deltaLon = lonDegrees - PIVOT_LON;
+                        const localWaterHeight = baseHeight + geoidOffset + (deltaLon * WEST_CORRECTION_FACTOR);
+                        
+                        if (cartographic.height < localWaterHeight) {
+                            const depth = (localWaterHeight - cartographic.height).toFixed(1);
+                            probeEl.style.borderColor = '#38bdf8';
+                            probeEl.style.color = '#bae6fd';
+                            probeEl.style.background = 'rgba(15, 23, 42, 0.9)';
+                            probeValueEl.innerHTML = `Terreno: <strong>${rawHeight}m</strong> <span style="margin-left:8px; font-size:0.9em; color:white">💧 ${depth}m prof.</span>`;
+                        } else {
+                            const clearance = (cartographic.height - localWaterHeight).toFixed(1);
+                            probeEl.style.borderColor = '#4ade80';
+                            probeEl.style.color = '#dcfce7';
+                            probeEl.style.background = 'rgba(15, 23, 42, 0.9)';
+                            probeValueEl.innerHTML = `Terreno: <strong>${rawHeight}m</strong> <span style="margin-left:8px; font-size:0.9em; color:white">⛰️ +${clearance}m</span>`;
+                        }
+                    } else {
+                        probeEl.style.display = 'none';
+                    }
+                }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+                // Pines de Referencia
+                const municipios = [
+                    { name: "Bogotá", lat: 4.600, lon: -74.080 },
+                    { name: "Sibaté", lat: 4.485, lon: -74.262 },
+                    { name: "Neusa", lat: 5.155, lon: -73.970 },
+                    { name: "Facatativá", lat: 4.815, lon: -74.354 }
+                ];
+                municipios.forEach(m => {
+                    viewer.entities.add({
+                        position: Cesium.Cartesian3.fromDegrees(m.lon, m.lat),
+                        point: { pixelSize: 5, color: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 1 },
+                        label: { text: m.name, font: '11px Inter', style: Cesium.LabelStyle.FILL_AND_OUTLINE, fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 2, pixelOffset: new Cesium.Cartesian2(0, -10), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 60000.0) }
+                    });
+                });
+
+                viewer.camera.setView({
+                    destination : Cesium.Cartesian3.fromDegrees(-74.10, 4.70, 75000),
+                    orientation : { heading : 0, pitch : Cesium.Math.toRadians(-90), roll : 0 }
+                });
+                
+                setTimeout(() => statusDiv.style.opacity = '0', 4000);
+
+            } catch (error) {
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
+```eof
+He realizado algunos cambios. He corregido el error de referencia en el manejador de eventos del mouse (`ReferenceError: cartographic is not defined`) asegurando que la variable `cartographic` se defina correctamente antes de ser utilizada para calcular la altura y longitud.
