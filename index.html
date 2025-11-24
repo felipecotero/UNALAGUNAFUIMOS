@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Laguna de Humboldt - Automática</title>
+    <title>La Laguna que Fuimos</title>
 
     <meta http-equiv="Content-Security-Policy"
           content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
@@ -25,103 +25,242 @@
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Cesium.js"></script>
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
 
+    <!-- Fuente Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
     <style>
         html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Inter', sans-serif; }
         #cesiumContainer { width: 100%; height: 100%; background-color: #1a202c; }
         
-        /* Cursor Inspector */
-        .cursor-probe {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.9); color: #4ade80; padding: 12px 24px;
-            border-radius: 8px; font-family: 'Inter', monospace; font-weight: 600; font-size: 16px;
-            z-index: 4001; pointer-events: none; border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4); display: none; white-space: nowrap;
-        }
+        /* --- UI SYSTEMS --- */
 
-        /* Controles Flotantes Simplificados */
+        /* Botón Menú */
+        .menu-btn {
+            position: absolute; top: 20px; left: 20px; width: 44px; height: 44px;
+            background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px; color: #fff; font-size: 20px; display: flex;
+            align-items: center; justify-content: center; cursor: pointer; z-index: 5000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4); transition: all 0.2s;
+            backdrop-filter: blur(8px);
+        }
+        .menu-btn:hover { background: #38bdf8; color: #0f172a; border-color: #38bdf8; transform: scale(1.05); }
+        .menu-btn.active { background: #38bdf8; color: #0f172a; }
+
+        /* Panel de Control */
         .water-controls {
-            position: absolute; top: 20px; right: 20px;
-            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px);
-            padding: 20px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1);
+            position: absolute; top: 80px; left: 20px;
+            background: rgba(15, 23, 42, 0.90); backdrop-filter: blur(16px);
+            padding: 24px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.08);
             color: white; z-index: 4000; width: 320px;
-            box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: top left; opacity: 1; visibility: visible; transform: scale(1) translateY(0);
+        }
+        
+        .water-controls.hidden {
+            opacity: 0; visibility: hidden; transform: scale(0.95) translateY(-20px); pointer-events: none;
         }
         
         .control-header {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;
+            margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;
         }
-        .control-title { font-size: 1.1em; font-weight: 700; color: #38bdf8; }
+        .control-title { font-size: 1.1em; font-weight: 800; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
         
+        .close-btn { background: transparent; border: none; color: #64748b; font-size: 1.2em; cursor: pointer; transition: color 0.2s; }
+        .close-btn:hover { color: #fff; }
+
         .meter-display {
-            background: rgba(15, 23, 42, 0.8); border-radius: 12px; padding: 10px;
-            text-align: center; margin-bottom: 15px; border: 1px solid rgba(56, 189, 248, 0.2);
+            background: rgba(15, 23, 42, 0.6); border-radius: 12px; padding: 15px;
+            text-align: center; margin-bottom: 20px; border: 1px solid rgba(56, 189, 248, 0.2);
+            position: relative; overflow: hidden;
         }
-        .current-height { font-size: 2em; font-weight: 800; line-height: 1; color: #fff; }
-        .unit { font-size: 0.8em; color: #94a3b8; display: block; }
+        .current-height { font-size: 2.5em; font-weight: 800; line-height: 1; color: #fff; letter-spacing: -1px; }
+        .unit { font-size: 0.8em; color: #94a3b8; font-weight: 500; margin-top: 4px; display: block; }
         
-        label { font-size: 0.85em; color: #cbd5e1; display: block; margin-bottom: 8px; font-weight: 500; }
+        label { font-size: 0.75em; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; display: block; margin-bottom: 10px; margin-top: 20px; }
         
         input[type=range] {
             width: 100%; -webkit-appearance: none; background: rgba(255,255,255,0.1);
-            height: 6px; border-radius: 4px; outline: none; margin-bottom: 15px;
+            height: 6px; border-radius: 3px; outline: none; margin-bottom: 5px;
         }
         input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 18px; height: 18px; background: #38bdf8;
-            border: 2px solid #0f172a; border-radius: 50%; cursor: pointer;
+            -webkit-appearance: none; width: 20px; height: 20px; background: #38bdf8;
+            border: 4px solid #0f172a; border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        .selector-group { display: flex; gap: 8px; margin-bottom: 0; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 10px; }
+        .layer-btn {
+            flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 0.8em; font-weight: 600; cursor: pointer;
+            background: transparent; color: #94a3b8; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .layer-btn.active { background: #38bdf8; color: #0f172a; box-shadow: 0 2px 10px rgba(56, 189, 248, 0.2); }
+        .layer-btn:hover:not(.active) { background: rgba(255,255,255,0.05); color: white; }
+
+        .auto-fix-badge {
+            background: rgba(16, 185, 129, 0.1); color: #34d399; padding: 10px; border-radius: 8px;
+            font-size: 0.75em; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(16, 185, 129, 0.2); margin-top: 20px;
         }
 
-        /* Indicador de Corrección */
-        .auto-fix-badge {
-            background: rgba(16, 185, 129, 0.15); color: #34d399;
-            padding: 8px; border-radius: 6px; font-size: 0.75em;
-            display: flex; align-items: center; gap: 8px; border: 1px solid rgba(16, 185, 129, 0.3);
-            margin-top: 15px;
+        /* --- LISTA DE LUGARES --- */
+        .places-list {
+            margin-top: 10px;
+            max-height: 200px; /* Altura fija para scroll */
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 5px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .places-list::-webkit-scrollbar { width: 4px; }
+        .places-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 2px; }
+        
+        .place-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #cbd5e1;
+            font-size: 0.85em;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .place-item:last-child { border-bottom: none; }
+        .place-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .place-icon { color: #fbbf24; font-size: 1.1em; } /* Icono dorado para sitios sagrados */
+
+        /* NOTIFICACIONES CENTRADAS */
+        .notification-container {
+            position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; gap: 12px; align-items: center; pointer-events: none; z-index: 5000;
+            width: 90%; max-width: 500px;
+        }
+        
+        .location-badge {
+            background: rgba(15, 23, 42, 0.85); color: white; padding: 16px 30px; border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 20px 40px -5px rgba(0,0,0,0.6);
+            text-align: center; animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(12px);
+        }
+        .location-badge h3 { margin: 0 0 5px 0; font-size: 1.1em; color: #38bdf8; }
+        .location-badge p { margin: 0; font-size: 0.9em; color: #cbd5e1; line-height: 1.4; }
+        
+        .tip-badge {
+            background: rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 8px 20px; border-radius: 20px;
+            font-size: 0.8em; backdrop-filter: blur(4px); text-align: center; font-weight: 500;
+            animation: fadeIn 0.5s ease; border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Brújula */
+        .compass-container {
+            position: absolute; bottom: 50px; right: 20px; width: 60px; height: 60px; z-index: 4000;
+            cursor: pointer; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+        }
+        .compass-container:hover { transform: scale(1.1) rotate(5deg); }
+        .compass-svg { width: 100%; height: 100%; display: block; }
+        
+        @keyframes slideUpFade { from { opacity:0; transform: translateY(30px) scale(0.9); } to { opacity:1; transform: translateY(0) scale(1); } }
+        @keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+        @keyframes fadeOut { from { opacity:1; transform: scale(1); } to { opacity:0; transform: scale(0.95); } }
+
+        /* Sonda del Mouse */
+        .cursor-probe {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.8); color: #4ade80; padding: 6px 12px;
+            border-radius: 6px; font-family: monospace; font-size: 12px;
+            z-index: 4001; pointer-events: none; border: 1px solid rgba(255,255,255,0.1);
+            display: none; white-space: nowrap; backdrop-filter: blur(4px);
         }
 
         .status-message { 
-            position: absolute; top: 20px; left: 20px; 
-            background-color: rgba(15, 23, 42, 0.95); color: #fff; padding: 15px 20px; border-radius: 8px; 
-            z-index: 3000; font-size: 14px; border-left: 4px solid #10b981;
+            position: absolute; top: 20px; left: 70px; 
+            background-color: rgba(15, 23, 42, 0.95); color: #fff; padding: 10px 20px; border-radius: 8px; 
+            z-index: 3000; font-size: 13px; border-left: 4px solid #10b981;
             box-shadow: 0 10px 20px rgba(0,0,0,0.3); transition: opacity 0.5s ease;
+        }
+        
+        @media (max-width: 600px) {
+            .water-controls { width: 90%; left: 5%; top: 80px; }
+            .notification-container { bottom: 160px; }
         }
     </style>
 </head>
 <body>
-    <div id="cursorProbe" class="cursor-probe">
-        <span id="probeIcon">📍</span> <span id="probeValue">--</span>
-    </div>
+    <div id="cursorProbe" class="cursor-probe">--</div>
 
-    <div class="water-controls">
+    <div id="menuBtn" class="menu-btn" title="Menú">☰</div>
+
+    <div id="mainPanel" class="water-controls hidden">
         <div class="control-header">
-            <span class="control-title">Laguna de Humboldt</span>
+            <h1 class="control-title">La Laguna que Fuimos</h1>
+            <button id="closeBtn" class="close-btn">✕</button>
         </div>
         
-        <div class="meter-display">
-            <span id="heightDisplay" class="current-height">2650</span>
-            <span class="unit">Nivel de Inundación (MSNM)</span>
+        <label>Cámara</label>
+        <div class="selector-group">
+            <button class="layer-btn" id="camOrbit" onclick="setCameraMode('orbit')">🛰️ Orbital</button>
+            <button class="layer-btn active" id="camWalk" onclick="setCameraMode('walk')">🚶 Caminante</button>
+        </div>
+        <div id="walkHint" style="display:none; font-size:0.7em; color:#94a3b8; margin: 8px 0 20px 0; text-align:center; line-height:1.4;">
+            Estás en modo caminante. Arrastra para mirar.<br>Doble clic para teletransportarte.
         </div>
         
-        <label>💧 Subir/Bajar Agua</label>
-        <input type="range" id="waterSlider" min="2500" max="2800" step="1" value="2650">
+        <label>Ir a Lugar Sagrado</label>
+        <div class="places-list" id="placesList"></div>
 
-        <label style="color:#fbbf24; font-size:0.8em;">🔧 Calibración (Ajuste Global)</label>
-        <!-- Rango actualizado para permitir ajuste desde 0 -->
-        <input type="range" id="offsetSlider" min="0" max="300" step="1" value="217">
-        <div style="text-align:right; font-size:0.75em; color:#fbbf24; margin-top:-10px;" id="offsetVal">+217m</div>
+        <label>Estilo</label>
+        <div class="selector-group">
+            <button class="layer-btn active" id="btnSat" onclick="setMapMode('sat')">🛰️ Satélite</button>
+            <button class="layer-btn" id="btnWhite" onclick="setMapMode('white')">🏔️ Maqueta</button>
+        </div>
 
-        <div class="auto-fix-badge">
-            <span>✅</span>
-            <div>
-                <strong>Curvatura Corregida</strong><br>
-                Se aplica compensación automática hacia el Occidente (-80m/grado).
+        <div style="margin-top: 25px;">
+            <div class="meter-display">
+                <span id="heightDisplay" class="current-height">2650</span>
+                <span class="unit">msnm</span>
+            </div>
+            
+            <input type="range" id="waterSlider" min="2500" max="2800" step="1" value="2650">
+            
+            <!-- Calibración Colapsable -->
+            <div style="margin-top:15px; padding-top:15px; border-top:1px dashed rgba(255,255,255,0.1);">
+                <div style="display:flex; justify-content:space-between; font-size:0.75em; color:#fbbf24; margin-bottom:5px;">
+                    <span>🔧 Calibración Fina</span>
+                    <span id="offsetVal">+83m</span>
+                </div>
+                <input type="range" id="offsetSlider" min="0" max="200" step="1" value="83" style="opacity:0.7;">
             </div>
         </div>
+
+        <div class="auto-fix-badge">
+            <span>☁️</span>
+            <div><strong>Atmósfera Andina</strong><br>Cielo limpio y horizonte difuminado.</div>
+        </div>
     </div>
 
+    <!-- Área de Notificaciones -->
+    <div class="notification-container" id="notificationArea"></div>
+
+    <div id="compass" class="compass-container" title="Clic para Norte">
+        <svg class="compass-svg" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="rgba(30, 41, 59, 0.9)" stroke="#475569" stroke-width="2"/>
+            <path d="M 50 12 L 58 50 L 42 50 Z" fill="#ef4444"/>
+            <path d="M 50 88 L 58 50 L 42 50 Z" fill="#94a3b8"/>
+            <circle cx="50" cy="50" r="4" fill="#f1f5f9"/>
+            <text x="45" y="28" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">N</text>
+        </svg>
+    </div>
+    
+    <!-- Mensaje de carga inicial -->
     <div id="statusMessage" class="status-message">
-        <strong>Listo.</strong><br>
-        <span style="font-size:0.85em; color:#ccc">Sistema geodésico automático aplicado.</span>
+        <strong>Cargando Experiencia...</strong><br>
+        <span style="font-size:0.85em; color:#ccc">Generando relieve y ubicaciones.</span>
     </div>
     
     <div id="cesiumContainer"></div>
@@ -131,43 +270,120 @@
             try { Cesium.buildModuleUrl.setBaseUrl(window.CESIUM_BASE_URL); } catch (e) {}
         }
 
+        // Definir funciones globales al inicio
+        window.setMapMode = null;
+        window.setCameraMode = null;
+        window.teleportToSite = null;
+
+        // --- BASE DE DATOS DE SITIOS SAGRADOS (Datos Verificados y Corregidos) ---
+        const sacredSites = [
+            { name: "Cerro Las Tres Viejas", mun: "Sesquilé", lat: 5.0351, lon: -73.8065, alt: 3200, note: "Formación icónica sagrada Muisca." },
+            { name: "Cerro Covadonga", mun: "Sesquilé", lat: 5.0582, lon: -73.7943, alt: 3150, note: "Mirador estratégico del norte." },
+            { name: "Cerro Pan de Azúcar", mun: "Sesquilé", lat: 5.0244, lon: -73.7890, alt: 3050, note: "Guardián cercano a la Laguna." },
+            { name: "Cuchilla de Peñas Blancas", mun: "Guatavita", lat: 4.9790, lon: -73.7745, alt: 3100, note: "Borde del cráter de la Laguna de Guatavita." },
+            { name: "Cerro de Montecillo", mun: "Guatavita", lat: 4.9320, lon: -73.8280, alt: 3000, note: "Hito en la vía Guatavita-Sesquilé." },
+            { name: "Alto del Choque", mun: "Chocontá", lat: 5.1205, lon: -73.6850, alt: 3350, note: "Nacimiento del Río Bogotá (Páramo Guacheneque)." },
+            { name: "Rocas de Suesca", mun: "Suesca", lat: 5.1050, lon: -73.8020, alt: 2650, note: "Farallones sagrados y límite norte del valle." },
+            { name: "Cerro de las Canteras", mun: "Tocancipá", lat: 4.9610, lon: -73.9280, alt: 2850, note: "También conocido como Peñas de Tunja." },
+            { name: "Cerro del Zipa", mun: "Zipaquirá", lat: 5.0180, lon: -74.0115, alt: 2750, note: "Hogar de la Catedral de Sal y el Árbol de la Vida." },
+            { name: "Monte Pincio", mun: "Cajicá", lat: 4.9335, lon: -74.0355, alt: 2900, note: "Cerro cónico visible desde gran parte de la Sabana." },
+            { name: "Cerro de Majuy", mun: "Cota", lat: 4.8197, lon: -74.1165, alt: 2900, note: "Gran resguardo indígena y cerro tutelar central." },
+            { name: "Cerro La Valvanera", mun: "Chía", lat: 4.8580, lon: -74.0750, alt: 2880, note: "Conectado al sistema de cerros orientales." },
+            { name: "Cerro de Juaica", mun: "Tabio", lat: 4.9125, lon: -74.1039, alt: 3200, note: "La Puerta de los Dioses, famoso por avistamientos." },
+            { name: "Peña de Juaica", mun: "Tabio", lat: 4.9190, lon: -74.0950, alt: 3100, note: "Parte del macizo de Juaica, cara norte." },
+            { name: "Cerro del Chocó", mun: "Subachoque", lat: 4.9750, lon: -74.1950, alt: 2780, note: "Divisoria de aguas occidente." },
+            { name: "Alto de la Tribuna", mun: "Facatativá", lat: 4.8550, lon: -74.4100, alt: 3000, note: "Punto más alto en la salida occidental." },
+            { name: "Cerro Manjuí", mun: "Facatativá", lat: 4.8250, lon: -74.3739, alt: 3150, note: "Reserva natural y arqueológica." },
+            { name: "Cerro de las Tres Cruces", mun: "Soacha", lat: 4.5835, lon: -74.2105, alt: 2700, note: "Hito visual de Soacha central." },
+            { name: "Piedra del Dios Varón", mun: "Soacha", lat: 4.5750, lon: -74.2250, alt: 2600, note: "Formación rocosa ceremonial prehispánica." },
+            { name: "Cerro de Monserrate", mun: "Bogotá", lat: 4.6056, lon: -74.0554, alt: 3152, note: "El guardián más famoso." },
+            { name: "Cerro de Guadalupe", mun: "Bogotá", lat: 4.5945, lon: -74.0560, alt: 3317, note: "El pico más alto de los cerros orientales." },
+            { name: "Cerro El Cable", mun: "Bogotá", lat: 4.6394, lon: -74.0383, alt: 3180, note: "Antiguas antenas, visible desde toda la ciudad." },
+            { name: "Alto de la Viga", mun: "Bogotá", lat: 4.5580, lon: -74.0650, alt: 3550, note: "Hacia el páramo de Cruz Verde." },
+            { name: "Cerro de Torca", mun: "Bogotá", lat: 4.7950, lon: -74.0350, alt: 2800, note: "Límite norte del Distrito." },
+            { name: "Páramo de Guerrero", mun: "Tausa", lat: 5.1550, lon: -74.0250, alt: 3500, note: "El tanque de agua del norte de la Sabana." }
+        ];
+
+        const SABANA_CENTER = { lat: 4.75, lon: -74.15 };
+        const TIPS = [
+            "💡 Tip: Usa <b>Ctrl + Rueda del Mouse</b> para ajustar el nivel del agua rápidamente.",
+            "💡 Tip: Haz <b>Doble Clic</b> en cualquier montaña para teletransportarte allí.",
+            "💡 Tip: Arrastra el mouse (clic izquierdo) para girar la cabeza y mirar el paisaje.",
+            "💡 Tip: Usa el menú ☰ para cambiar entre vista Satelital y Maqueta Blanca.",
+            "💡 Tip: La línea de costa se ajusta automáticamente a la curvatura de la tierra."
+        ];
+
         window.addEventListener('load', async function() {
+            // UI Refs
             const statusDiv = document.getElementById('statusMessage');
             const slider = document.getElementById('waterSlider');
             const offsetSlider = document.getElementById('offsetSlider');
             const heightDisplay = document.getElementById('heightDisplay');
             const offsetVal = document.getElementById('offsetVal');
             const probeEl = document.getElementById('cursorProbe');
-            const probeValueEl = document.getElementById('probeValue');
-
-            // --- CONFIGURACIÓN AUTOMÁTICA ---
-            let baseHeight = 2650.0;
-            let geoidOffset = 217.0; // Valor que encontraste que funciona en el centro
+            const notificationArea = document.getElementById('notificationArea');
+            const compass = document.getElementById('compass');
+            const placesList = document.getElementById('placesList');
             
-            // CENTRO GEOGRÁFICO (Pivote)
-            // Usamos Bogotá oriental como pivote "cero".
+            const btnSat = document.getElementById('btnSat');
+            const btnWhite = document.getElementById('btnWhite');
+            const camOrbit = document.getElementById('camOrbit');
+            const camWalk = document.getElementById('camWalk');
+            const mainPanel = document.getElementById('mainPanel');
+            const menuBtn = document.getElementById('menuBtn');
+            const closeBtn = document.getElementById('closeBtn');
+            const walkHint = document.getElementById('walkHint');
+
+            const toggleMenu = () => {
+                mainPanel.classList.toggle('hidden');
+                menuBtn.classList.toggle('active');
+            };
+            menuBtn.addEventListener('click', toggleMenu);
+            closeBtn.addEventListener('click', toggleMenu);
+
+            let baseHeight = 2650.0; 
+            let geoidOffset = 83.0;  
             const PIVOT_LON = -74.0; 
-            
-            // FACTOR DE CORRECCIÓN AUTOMÁTICA
-            // Por cada grado que nos movemos al Oeste, bajamos X metros el agua.
-            // El usuario reportó que el agua estaba "muy alta" en el occidente.
-            // Un valor positivo aquí BAJA el agua hacia el oeste (longitudes negativas).
-            const WEST_CORRECTION_FACTOR = 250.0; // Metros de caída por grado de longitud
+            const WEST_CORRECTION_FACTOR = 250.0; 
+            let currentCameraMode = 'walk'; 
 
-            function updateWaterLevelDisplay() {
-                heightDisplay.innerText = baseHeight;
+            function updateDisplay() {
+                heightDisplay.innerText = Math.round(baseHeight);
                 offsetVal.innerText = (geoidOffset >= 0 ? "+" : "") + geoidOffset + "m";
+                slider.value = baseHeight;
+            }
+            slider.addEventListener('input', (e) => { baseHeight = parseFloat(e.target.value); updateDisplay(); });
+            offsetSlider.addEventListener('input', (e) => { geoidOffset = parseFloat(e.target.value); updateDisplay(); });
+
+            document.addEventListener('wheel', function(e) {
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    const delta = e.deltaY;
+                    let newHeight = baseHeight - (delta * 0.2);
+                    newHeight = Math.max(2500, Math.min(2800, newHeight));
+                    baseHeight = newHeight;
+                    updateDisplay();
+                }
+            }, { passive: false });
+
+            function showNotification(htmlContent, duration = 5000) {
+                const badge = document.createElement('div');
+                badge.className = 'location-badge'; 
+                if(htmlContent.includes('💡')) badge.className = 'tip-badge';
+                badge.innerHTML = htmlContent;
+                notificationArea.appendChild(badge);
+                setTimeout(() => {
+                    badge.style.animation = 'fadeOut 0.5s forwards';
+                    setTimeout(() => badge.remove(), 500);
+                }, duration);
             }
 
-            slider.addEventListener('input', (e) => {
-                baseHeight = parseFloat(e.target.value);
-                updateWaterLevelDisplay();
-            });
-
-            offsetSlider.addEventListener('input', (e) => {
-                geoidOffset = parseFloat(e.target.value);
-                updateWaterLevelDisplay();
-            });
+            setInterval(() => {
+                if (Math.random() > 0.7) { 
+                    const tip = TIPS[Math.floor(Math.random() * TIPS.length)];
+                    showNotification(tip, 6000);
+                }
+            }, 30000); 
 
             try {
                 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMTZiNWVjNi1jZTI3LTRjNjktOTUwMi04NWZlYTdiM2M4ZDIiLCJpZCI6MzAyNTUwLCJpYXQiOjE3NDcyNjA3MDV9.a54xRw4uqeucut0ipo8dcYrycXNHMkq4YtoXThS4taU';
@@ -176,140 +392,253 @@
                     requestVertexNormals: true, requestWaterMask: true
                 });
 
-                const imageryProvider = new Cesium.ArcGisMapServerImageryProvider({
-                    url : 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer',
-                    enablePickFeatures: false
-                });
-
                 const viewer = new Cesium.Viewer('cesiumContainer', {
                     terrainProvider: terrainProvider,
-                    imageryProvider: imageryProvider,
-                    baseLayerPicker: false, geocoder: false, animation: false, timeline: false,
-                    fullscreenButton: true, scene3DOnly: false, selectionIndicator: false,
-                    infoBox: false, skyBox: false, skyAtmosphere: false
+                    imageryProvider: false, baseLayerPicker: false, geocoder: false, 
+                    animation: false, timeline: false, fullscreenButton: true, 
+                    scene3DOnly: false, selectionIndicator: false, infoBox: false, 
+                    skyBox: false, skyAtmosphere: false,
+                    homeButton: true, sceneModePicker: true,
+                    contextOptions: { webgl: { alpha: true } }
                 });
 
-                viewer.scene.globe.maximumScreenSpaceError = 1.0; 
-                viewer.scene.globe.enableLighting = true;
-                viewer.scene.globe.depthTestAgainstTerrain = true; 
+                // FONDO TRANSPARENTE PARA VER EL CIELO CSS
+                viewer.scene.backgroundColor = Cesium.Color.TRANSPARENT;
                 
+                const satelliteLayer = new Cesium.ImageryLayer(new Cesium.ArcGisMapServerImageryProvider({
+                    url : 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+                }));
+                viewer.imageryLayers.add(satelliteLayer);
+
+                viewer.scene.globe.maximumScreenSpaceError = 0.6; 
+                viewer.scene.globe.enableLighting = true;
+                viewer.scene.globe.dynamicAtmosphereLighting = false;
+                viewer.scene.globe.depthTestAgainstTerrain = true;
+                
+                // NIEBLA ATMOSFÉRICA
+                viewer.scene.fog.enabled = true;
+                viewer.scene.fog.density = 0.00025; // Niebla densa en distancia
+                viewer.scene.fog.screenSpaceErrorFactor = 2.0;
+
                 const now = new Date(); now.setUTCHours(14); 
                 viewer.clock.currentTime = Cesium.JulianDate.fromDate(now);
                 viewer.clock.shouldAnimate = false;
 
-                // --- POLÍGONO DEL USUARIO ---
-                const rawCoords = [
-                    -74.26742, 4.55040, -74.27124, 4.57282, -74.29438, 4.59764,
-                    -74.30479, 4.62605, -74.32119, 4.66068, -74.32008, 4.67505,
-                    -74.34487, 4.70449, -74.35930, 4.73394, -74.36164, 4.78033,
-                    -74.39957, 4.81597, -74.40380, 4.85732, -74.37684, 4.86300,
-                    -74.33371, 4.83454, -74.22584, 4.89676, -74.22387, 4.96397,
-                    -74.13305, 5.04260, -74.06573, 5.00989, -73.99388, 5.10462,
-                    -73.88298, 5.19542, -73.79518, 5.15274, -73.76444, 5.10997,
-                    -73.78914, 4.96403, -73.90959, 4.79087, -74.00997, 4.64030,
-                    -74.01528, 4.52313, -74.12434, 4.43651, -74.23778, 4.40496,
-                    -74.29386, 4.44703, -74.26823, 4.55119
-                ];
+                // --- LÓGICA DE CAPAS ---
+                window.setMapMode = function(mode) {
+                    if (mode === 'sat') {
+                        satelliteLayer.show = true;
+                        viewer.scene.globe.baseColor = Cesium.Color.BLACK;
+                        btnSat.classList.add('active'); btnWhite.classList.remove('active');
+                    } else {
+                        satelliteLayer.show = false;
+                        viewer.scene.globe.baseColor = Cesium.Color.WHITE;
+                        btnSat.classList.remove('active'); btnWhite.classList.add('active');
+                    }
+                };
 
-                // Preprocesar puntos para estructura
+                window.setCameraMode = function(mode) {
+                    currentCameraMode = mode;
+                    const controller = viewer.scene.screenSpaceCameraController;
+                    if (mode === 'orbit') {
+                        camOrbit.classList.add('active'); camWalk.classList.remove('active');
+                        walkHint.style.display = 'none';
+                        controller.enableRotate = true; controller.enableTranslate = true; controller.enableTilt = true;
+                        controller.lookEventTypes = { eventType: Cesium.CameraEventType.LEFT_DRAG, modifier: Cesium.KeyboardEventModifier.SHIFT };
+                    } else {
+                        camWalk.classList.add('active'); camOrbit.classList.remove('active');
+                        walkHint.style.display = 'block';
+                        controller.enableRotate = false; controller.enableTranslate = false; controller.enableTilt = false;
+                        controller.lookEventTypes = [Cesium.CameraEventType.LEFT_DRAG];
+                        // Resetear roll
+                        viewer.scene.camera.setView({ 
+                             orientation: { heading: viewer.scene.camera.heading, pitch: 0, roll: 0 } 
+                        });
+                    }
+                };
+
+                window.teleportToSite = function(site) {
+                    window.setCameraMode('walk');
+                    
+                    viewer.camera.flyTo({
+                        destination: Cesium.Cartesian3.fromDegrees(site.lon, site.lat, site.alt + 1.7),
+                        orientation: {
+                            heading: viewer.camera.heading,
+                            pitch: 0.0, 
+                            roll: 0.0
+                        },
+                        duration: 2.0,
+                        complete: () => {
+                            const msg = `
+                                <h3>${site.name}</h3>
+                                <p>${site.note}</p>
+                                <div style="font-size:0.8em; margin-top:5px; color:#94a3b8">📍 ${site.mun} • ${site.alt}m</div>
+                            `;
+                            showNotification(msg, 8000);
+                            
+                            // Orientar hacia el Norte (Heading 0)
+                            viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+                            viewer.scene.camera.setView({
+                                orientation: {
+                                    heading: 0.0, // NORTE
+                                    pitch: 0.0, // Horizonte
+                                    roll: 0.0
+                                }
+                            });
+                        }
+                    });
+                };
+
+                // Rellenar lista
+                placesList.innerHTML = '';
+                sacredSites.forEach(site => {
+                    const item = document.createElement('div');
+                    item.className = 'place-item';
+                    item.innerHTML = `<span class="place-icon">⛰️</span> <div><strong>${site.name}</strong><br><span style="color:#94a3b8; font-size:0.9em">${site.mun}</span></div>`;
+                    item.onclick = () => window.teleportToSite(site);
+                    placesList.appendChild(item);
+                });
+
+                // Inicio Aleatorio
+                const startSite = sacredSites[Math.floor(Math.random() * sacredSites.length)];
+                console.log("Iniciando en:", startSite.name);
+                window.teleportToSite(startSite);
+
+                // Lógica Brújula Mejorada
+                viewer.scene.postRender.addEventListener(() => {
+                    const h = viewer.scene.camera.heading;
+                    compass.style.transform = `rotate(${-Cesium.Math.toDegrees(h)}deg)`;
+                    
+                    if (currentCameraMode === 'walk' && Math.abs(viewer.scene.camera.roll) > 0.01) {
+                        viewer.scene.camera.setView({ 
+                            orientation: { heading: viewer.scene.camera.heading, pitch: viewer.scene.camera.pitch, roll: 0.0 } 
+                        });
+                    }
+                });
+                
+                // Acción de clic en Brújula (Mirar al Norte, Horizonte recto)
+                compass.addEventListener('click', () => {
+                    viewer.camera.flyTo({ 
+                        destination: viewer.camera.position, 
+                        orientation: { 
+                            heading: 0.0, // Norte 
+                            pitch: 0.0,   // Horizonte
+                            roll: 0.0     // Nivelado
+                        }, 
+                        duration: 1.5 
+                    });
+                });
+
+                const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+                handler.setInputAction((click) => {
+                    if (currentCameraMode !== 'walk') return;
+                    const ray = viewer.camera.getPickRay(click.position);
+                    const pos = viewer.scene.globe.pick(ray, viewer.scene);
+                    if (pos) {
+                        const carto = Cesium.Cartographic.fromCartesian(pos);
+                        viewer.camera.flyTo({
+                            destination: Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, carto.height + 1.7),
+                            orientation: { heading: viewer.camera.heading, pitch: 0, roll: 0 },
+                            duration: 1.5
+                        });
+                    }
+                }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+
+                // Agua
+                const rawCoords = [ -74.26742, 4.55040, -74.27124, 4.57282, -74.29438, 4.59764, -74.30479, 4.62605, -74.32119, 4.66068, -74.32008, 4.67505, -74.34487, 4.70449, -74.35930, 4.73394, -74.36164, 4.78033, -74.39957, 4.81597, -74.40380, 4.85732, -74.37684, 4.86300, -74.33371, 4.83454, -74.22584, 4.89676, -74.22387, 4.96397, -74.13305, 5.04260, -74.06573, 5.00989, -73.99388, 5.10462, -73.88298, 5.19542, -73.70000, 5.18000, -73.65000, 5.08000, -73.76444, 5.10997, -73.78914, 4.96403, -73.90959, 4.79087, -74.00997, 4.64030, -74.01528, 4.52313, -74.12434, 4.43651, -74.23778, 4.40496, -74.29386, 4.44703, -74.26823, 4.55119 ];
                 let polygonPoints = [];
-                for(let i=0; i<rawCoords.length; i+=2){
-                    polygonPoints.push({lon: rawCoords[i], lat: rawCoords[i+1]});
-                }
+                for(let i=0; i<rawCoords.length; i+=2) polygonPoints.push({lon: rawCoords[i], lat: rawCoords[i+1]});
 
-                // --- FUNCIÓN DE AJUSTE AUTOMÁTICO ---
                 function getAutoCorrectedHierarchy() {
                     const positions = polygonPoints.map(pt => {
-                        // 1. Calcular distancia al Oeste desde el pivote (Bogotá)
                         const deltaLon = pt.lon - PIVOT_LON; 
-                        
-                        // 2. Aplicar corrección
                         const correction = deltaLon * WEST_CORRECTION_FACTOR;
-                        
-                        // 3. Altura Final
                         const finalHeight = baseHeight + geoidOffset + correction;
-                        
                         return Cesium.Cartesian3.fromDegrees(pt.lon, pt.lat, finalHeight);
                     });
                     return new Cesium.PolygonHierarchy(positions);
                 }
 
-                // Entidad de Agua
                 viewer.entities.add({
                     polygon: {
                         hierarchy: new Cesium.CallbackProperty(getAutoCorrectedHierarchy, false),
-                        perPositionHeight: true, // Clave para que la corrección funcione vértice a vértice
-                        material: new Cesium.ColorMaterialProperty(
-                            Cesium.Color.fromCssColorString('#0ea5e9').withAlpha(0.6)
-                        ),
+                        perPositionHeight: true, 
+                        material: new Cesium.ColorMaterialProperty(Cesium.Color.fromCssColorString('#0ea5e9').withAlpha(0.6)),
                         outline: false
                     }
                 });
 
-                // SONDA (Ahora muestra la altura CORREGIDA en ese punto)
-                const probeHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-                probeHandler.setInputAction(function(movement) {
-                    const ray = viewer.camera.getPickRay(movement.endPosition);
-                    const position = viewer.scene.globe.pick(ray, viewer.scene);
-
-                    if (position) {
-                        // CORRECCIÓN APLICADA AQUÍ: Nombre de variable unificado a 'cartographic'
-                        const cartographic = Cesium.Cartographic.fromCartesian(position);
-                        const rawHeight = cartographic.height.toFixed(0);
-                        const lonDegrees = Cesium.Math.toDegrees(cartographic.longitude);
-                        
-                        probeEl.style.display = 'block';
-                        
-                        // Calcular altura del agua teórica EN ESTE PUNTO EXACTO
-                        const deltaLon = lonDegrees - PIVOT_LON;
-                        const localWaterHeight = baseHeight + geoidOffset + (deltaLon * WEST_CORRECTION_FACTOR);
-                        
-                        if (cartographic.height < localWaterHeight) {
-                            const depth = (localWaterHeight - cartographic.height).toFixed(1);
-                            probeEl.style.borderColor = '#38bdf8';
-                            probeEl.style.color = '#bae6fd';
-                            probeEl.style.background = 'rgba(15, 23, 42, 0.9)';
-                            probeValueEl.innerHTML = `Terreno: <strong>${rawHeight}m</strong> <span style="margin-left:8px; font-size:0.9em; color:white">💧 ${depth}m prof.</span>`;
-                        } else {
-                            const clearance = (cartographic.height - localWaterHeight).toFixed(1);
-                            probeEl.style.borderColor = '#4ade80';
-                            probeEl.style.color = '#dcfce7';
-                            probeEl.style.background = 'rgba(15, 23, 42, 0.9)';
-                            probeValueEl.innerHTML = `Terreno: <strong>${rawHeight}m</strong> <span style="margin-left:8px; font-size:0.9em; color:white">⛰️ +${clearance}m</span>`;
-                        }
-                    } else {
-                        probeEl.style.display = 'none';
-                    }
-                }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-
-                // Pines de Referencia
                 const municipios = [
-                    { name: "Bogotá", lat: 4.600, lon: -74.080 },
-                    { name: "Sibaté", lat: 4.485, lon: -74.262 },
-                    { name: "Neusa", lat: 5.155, lon: -73.970 },
-                    { name: "Facatativá", lat: 4.815, lon: -74.354 }
+                    { name: "Bogotá", lat: 4.600, lon: -74.080 }, { name: "Chía", lat: 4.865, lon: -74.058 },
+                    { name: "Cajicá", lat: 4.918, lon: -74.028 }, { name: "Zipaquirá", lat: 5.026, lon: -74.000 },
+                    { name: "Sopó", lat: 4.908, lon: -73.939 }, { name: "Tocancipá", lat: 4.964, lon: -73.912 },
+                    { name: "Gachancipá", lat: 4.991, lon: -73.870 }, { name: "Nemocón", lat: 5.067, lon: -73.878 },
+                    { name: "Cogua", lat: 5.060, lon: -73.980 }, { name: "Tabio", lat: 4.917, lon: -74.100 },
+                    { name: "Tenjo", lat: 4.873, lon: -74.144 }, { name: "Subachoque", lat: 4.930, lon: -74.173 },
+                    { name: "Cota", lat: 4.810, lon: -74.100 }, { name: "Funza", lat: 4.717, lon: -74.211 },
+                    { name: "Mosquera", lat: 4.706, lon: -74.230 }, { name: "Madrid", lat: 4.732, lon: -74.263 },
+                    { name: "Facatativá", lat: 4.815, lon: -74.354 }, { name: "Bojacá", lat: 4.733, lon: -74.342 },
+                    { name: "El Rosal", lat: 4.852, lon: -74.258 }, { name: "Soacha", lat: 4.585, lon: -74.216 },
+                    { name: "Sibaté", lat: 4.485, lon: -74.262 }, { name: "La Calera", lat: 4.721, lon: -73.971 },
+                    { name: "Guasca", lat: 4.866, lon: -73.878 }, { name: "Sesquilé", lat: 5.046, lon: -73.815 },
+                    { name: "Tausa", lat: 5.198, lon: -73.886 }, { name: "Sutatausa", lat: 5.250, lon: -73.850 },
+                    { name: "Embalse Neusa", lat: 5.155, lon: -73.970 }, { name: "Chocontá", lat: 5.145, lon: -73.680 }
                 ];
+
                 municipios.forEach(m => {
                     viewer.entities.add({
                         position: Cesium.Cartesian3.fromDegrees(m.lon, m.lat),
-                        point: { pixelSize: 5, color: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 1 },
-                        label: { text: m.name, font: '11px Inter', style: Cesium.LabelStyle.FILL_AND_OUTLINE, fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 2, pixelOffset: new Cesium.Cartesian2(0, -10), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 60000.0) }
+                        point: { pixelSize: 5, color: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 1.5, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+                        label: { 
+                            text: m.name, font: '11px Inter, sans-serif', style: Cesium.LabelStyle.FILL_AND_OUTLINE, 
+                            fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 2, 
+                            pixelOffset: new Cesium.Cartesian2(0, -10), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 70000.0), disableDepthTestDistance: Number.POSITIVE_INFINITY 
+                        }
                     });
                 });
 
-                viewer.camera.setView({
-                    destination : Cesium.Cartesian3.fromDegrees(-74.10, 4.70, 75000),
-                    orientation : { heading : 0, pitch : Cesium.Math.toRadians(-90), roll : 0 }
+                sacredSites.forEach(s => {
+                    viewer.entities.add({
+                        position: Cesium.Cartesian3.fromDegrees(s.lon, s.lat),
+                        point: { 
+                            pixelSize: 9, color: Cesium.Color.GOLD, outlineColor: Cesium.Color.BLACK, outlineWidth: 2, 
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY 
+                        }
+                    });
                 });
-                
-                setTimeout(() => statusDiv.style.opacity = '0', 4000);
 
-            } catch (error) {
-                console.error(error);
-            }
+                const probeHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+                probeHandler.setInputAction((movement) => {
+                    const ray = viewer.camera.getPickRay(movement.endPosition);
+                    const pos = viewer.scene.globe.pick(ray, viewer.scene);
+                    if (pos) {
+                        // Corrección: usar 'carto' consistentemente
+                        const carto = Cesium.Cartographic.fromCartesian(pos);
+                        const rawH = carto.height.toFixed(0);
+                        const lonDegrees = Cesium.Math.toDegrees(carto.longitude);
+                        
+                        probeEl.style.display = 'block';
+                        const dLon = lonDegrees - PIVOT_LON;
+                        const waterH = baseHeight + geoidOffset + (dLon * WEST_CORRECTION_FACTOR);
+                        
+                        if (carto.height < waterH) {
+                            const d = (waterH - carto.height).toFixed(1);
+                            probeEl.style.borderColor = '#38bdf8'; probeEl.style.color = '#bae6fd'; probeEl.style.background = 'rgba(15, 23, 42, 0.9)';
+                            probeEl.innerHTML = `Alt: ${rawH}m <span style="margin-left:5px; color:white">💧 ${d}m</span>`;
+                        } else {
+                            probeEl.style.borderColor = '#4ade80'; probeEl.style.color = '#dcfce7'; probeEl.style.background = 'rgba(15, 23, 42, 0.9)';
+                            probeEl.innerText = `Alt: ${rawH}m`;
+                        }
+                    } else { probeEl.style.display = 'none'; }
+                }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+                
+                setTimeout(() => {
+                    if(statusDiv) statusDiv.style.opacity = '0';
+                }, 3000);
+
+            } catch (error) { console.error(error); }
         });
     </script>
 </body>
 </html>
-```eof
-He realizado algunos cambios. He corregido el error de referencia en el manejador de eventos del mouse (`ReferenceError: cartographic is not defined`) asegurando que la variable `cartographic` se defina correctamente antes de ser utilizada para calcular la altura y longitud.
