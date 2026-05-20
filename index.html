@@ -18,12 +18,12 @@
                    form-action 'self';">
 
     <script>
-        var CESIUM_VERSION = '1.104'; 
+        var CESIUM_VERSION = '1.117'; 
         window.CESIUM_BASE_URL = `https://cesium.com/downloads/cesiumjs/releases/${CESIUM_VERSION}/Build/Cesium/`;
     </script>
 
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Cesium.js"></script>
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
 
     <!-- Fuente Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -388,27 +388,45 @@
             try {
                 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMTZiNWVjNi1jZTI3LTRjNjktOTUwMi04NWZlYTdiM2M4ZDIiLCJpZCI6MzAyNTUwLCJpYXQiOjE3NDcyNjA3MDV9.a54xRw4uqeucut0ipo8dcYrycXNHMkq4YtoXThS4taU';
 
-                const terrainProvider = await Cesium.createWorldTerrainAsync({
-                    requestVertexNormals: true, requestWaterMask: true
-                });
+                let terrainProvider;
+                try {
+                    terrainProvider = await Cesium.ArcGISTiledElevationTerrainProvider.fromUrl(
+                        "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer"
+                    );
+                } catch(e) {
+                    console.warn("ArcGIS terrain falló, usando elipsoide:", e);
+                }
 
                 const viewer = new Cesium.Viewer('cesiumContainer', {
-                    terrainProvider: terrainProvider,
-                    imageryProvider: false, baseLayerPicker: false, geocoder: false, 
-                    animation: false, timeline: false, fullscreenButton: true, 
-                    scene3DOnly: false, selectionIndicator: false, infoBox: false, 
+                    baseLayer: false, baseLayerPicker: false, geocoder: false,
+                    animation: false, timeline: false, fullscreenButton: true,
+                    scene3DOnly: false, selectionIndicator: false, infoBox: false,
                     skyBox: false, skyAtmosphere: false,
                     homeButton: true, sceneModePicker: true,
                     contextOptions: { webgl: { alpha: true } }
                 });
 
+                if (terrainProvider) {
+                    viewer.terrainProvider = terrainProvider;
+                }
+
                 // FONDO TRANSPARENTE PARA VER EL CIELO CSS
                 viewer.scene.backgroundColor = Cesium.Color.TRANSPARENT;
-                
-                const satelliteLayer = new Cesium.ImageryLayer(new Cesium.ArcGisMapServerImageryProvider({
-                    url : 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
-                }));
-                viewer.imageryLayers.add(satelliteLayer);
+
+                // Cargar imágenes satélite ArcGIS con la API moderna asíncrona
+                try {
+                    const arcgisProvider = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+                        'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+                    );
+                    const satelliteLayer = viewer.imageryLayers.addImageryProvider(arcgisProvider);
+                    window._satelliteLayer = satelliteLayer;
+                } catch(e) {
+                    console.warn("ArcGIS imagery falló, usando OSM:", e);
+                    const osmProvider = new Cesium.OpenStreetMapImageryProvider({
+                        url: 'https://a.tile.openstreetmap.org/'
+                    });
+                    window._satelliteLayer = viewer.imageryLayers.addImageryProvider(osmProvider);
+                }
 
                 viewer.scene.globe.maximumScreenSpaceError = 0.6; 
                 viewer.scene.globe.enableLighting = true;
@@ -427,11 +445,11 @@
                 // --- LÓGICA DE CAPAS ---
                 window.setMapMode = function(mode) {
                     if (mode === 'sat') {
-                        satelliteLayer.show = true;
+                        if (window._satelliteLayer) window._satelliteLayer.show = true;
                         viewer.scene.globe.baseColor = Cesium.Color.BLACK;
                         btnSat.classList.add('active'); btnWhite.classList.remove('active');
                     } else {
-                        satelliteLayer.show = false;
+                        if (window._satelliteLayer) window._satelliteLayer.show = false;
                         viewer.scene.globe.baseColor = Cesium.Color.WHITE;
                         btnSat.classList.remove('active'); btnWhite.classList.add('active');
                     }

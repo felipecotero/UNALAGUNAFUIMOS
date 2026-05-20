@@ -82,24 +82,35 @@
                     if(statusMessageDiv) statusMessageDiv.innerHTML = 'Token configurado. Cargando proveedores...';
                     console.log("Intentando inicializar Cesium Viewer (CSP MUY PERMISIVA y OSM)...");
 
-                    const terrainProvider = await Cesium.createWorldTerrainAsync();
+                    const terrainProvider = await Cesium.ArcGISTiledElevationTerrainProvider.fromUrl(
+                        "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer"
+                    );
                     console.log("Proveedor de terreno cargado.");
                     if(statusMessageDiv) statusMessageDiv.innerHTML = 'Proveedor de terreno cargado.';
 
-                    // Cambiando a OpenStreetMapImageryProvider para simplificar
-                    const imageryProvider = new Cesium.OpenStreetMapImageryProvider({
-                        url : 'https://a.tile.openstreetmap.org/'
-                    });
-                    console.log("Proveedor de imágenes OpenStreetMap cargado.");
-                    if(statusMessageDiv) statusMessageDiv.innerHTML = 'Proveedor de imágenes OSM cargado. Creando visor...';
-                    
-                    if(cesiumContainer) cesiumContainer.innerHTML = ''; 
+                    if(cesiumContainer) cesiumContainer.innerHTML = '';
 
                     const viewer = new Cesium.Viewer('cesiumContainer', {
-                        terrainProvider: terrainProvider,
-                        imageryProvider: imageryProvider // Usando OpenStreetMap
+                        baseLayer: false,
+                        baseLayerPicker: false
                     });
-                    
+
+                    viewer.terrainProvider = terrainProvider;
+
+                    // Cargar imágenes ArcGIS (satélite, sin token), con OSM como fallback
+                    try {
+                        const arcgisProvider = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+                            'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+                        );
+                        viewer.imageryLayers.addImageryProvider(arcgisProvider);
+                        console.log("Proveedor ArcGIS World Imagery cargado.");
+                    } catch(imgErr) {
+                        console.warn("ArcGIS imagery falló, usando OSM:", imgErr);
+                        viewer.imageryLayers.addImageryProvider(new Cesium.OpenStreetMapImageryProvider({
+                            url: 'https://a.tile.openstreetmap.org/'
+                        }));
+                    }
+
                     console.log("Cesium Viewer inicializado exitosamente.");
                     if(statusMessageDiv) {
                         statusMessageDiv.style.backgroundColor = 'lightgreen';

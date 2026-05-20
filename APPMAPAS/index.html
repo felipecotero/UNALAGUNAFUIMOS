@@ -99,36 +99,52 @@
                 
                 let terrainProviderInstance;
                 try {
-                    console.log("Intentando crear Cesium World Terrain...");
-                    terrainProviderInstance = await Cesium.createWorldTerrainAsync();
-                    console.log("Proveedor de terreno Cesium World Terrain creado.");
+                    console.log("Intentando crear ArcGIS World Elevation...");
+                    terrainProviderInstance = await Cesium.ArcGISTiledElevationTerrainProvider.fromUrl(
+                        "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer"
+                    );
+                    console.log("Proveedor de terreno ArcGIS World Elevation creado.");
                     if (statusMessageDiv) statusMessageDiv.innerHTML = 'Proveedor de terreno creado.';
                 } catch (terrainError) {
-                    console.error("Error al crear Cesium World Terrain:", terrainError);
+                    console.error("Error al crear ArcGIS World Terrain:", terrainError);
                     if (statusMessageDiv) statusMessageDiv.innerHTML = 'Error al crear proveedor de terreno. Se usará Elipsoide.';
                 }
 
-                let imageryProviderInstance;
-                try {
-                    console.log("Intentando crear OpenStreetMapImageryProvider...");
-                    imageryProviderInstance = new Cesium.OpenStreetMapImageryProvider({
-                        url : 'https://a.tile.openstreetmap.org/'
-                    });
-                    console.log("Proveedor de imágenes OpenStreetMap creado.");
-                    if(statusMessageDiv) statusMessageDiv.innerHTML = 'Proveedor OSM creado. Creando visor...';
-                } catch (osmError) {
-                     console.error("Error al crear OpenStreetMapImageryProvider:", osmError);
-                     if(statusMessageDiv) statusMessageDiv.innerHTML = 'Error fatal al crear proveedor de imágenes OSM.';
-                }
-                
-                if (cesiumContainer) cesiumContainer.innerHTML = ''; 
+                if (cesiumContainer) cesiumContainer.innerHTML = '';
 
                 console.log("Inicializando Cesium.Viewer...");
                 const viewer = new Cesium.Viewer('cesiumContainer', {
-                    terrainProvider: terrainProviderInstance,
-                    imageryProvider: imageryProviderInstance, 
-                    baseLayerPicker: true, 
+                    baseLayer: false,
+                    baseLayerPicker: false,
                 });
+
+                if (terrainProviderInstance) {
+                    viewer.terrainProvider = terrainProviderInstance;
+                }
+
+                // Cargar imágenes con ArcGIS primero, OSM como fallback
+                try {
+                    const arcgisProvider = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+                        'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+                    );
+                    viewer.imageryLayers.addImageryProvider(arcgisProvider);
+                    console.log("Proveedor de imágenes ArcGIS cargado.");
+                    if(statusMessageDiv) statusMessageDiv.innerHTML = 'Proveedor ArcGIS creado. Visor listo.';
+                } catch (imgError) {
+                    console.warn("ArcGIS imagery falló, intentando OSM:", imgError);
+                    try {
+                        const osmProvider = new Cesium.OpenStreetMapImageryProvider({
+                            url : 'https://a.tile.openstreetmap.org/'
+                        });
+                        viewer.imageryLayers.addImageryProvider(osmProvider);
+                        console.log("Proveedor de imágenes OpenStreetMap cargado como fallback.");
+                        if(statusMessageDiv) statusMessageDiv.innerHTML = 'Proveedor OSM creado. Creando visor...';
+                    } catch (osmError) {
+                        console.error("Error al crear proveedor de imágenes OSM:", osmError);
+                        if(statusMessageDiv) statusMessageDiv.innerHTML = 'Error fatal al crear proveedor de imágenes.';
+                    }
+                }
+
                 console.log("Cesium Viewer inicializado exitosamente.");
                 if (statusMessageDiv) {
                     statusMessageDiv.style.backgroundColor = 'lightgreen';

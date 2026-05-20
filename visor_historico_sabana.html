@@ -707,8 +707,6 @@
         ];
 
         // Definición de Coordenadas del Polígono del Espejo de Agua (Sabana de Bogotá)
-        // Delimitamos una cuenca amplia. El terreno 3D (Cesium World Terrain) se encargará de recortar el agua
-        // dinámicamente según la topografía real, simulando orillas perfectas.
         const BASIN_COORDS = Cesium.Cartesian3.fromDegreesArray([
             -73.72, 5.15, // Chocontá (Noreste)
             -73.65, 4.90, // Guasca (Oriente)
@@ -719,6 +717,40 @@
             -74.15, 5.15  // Zipaquirá (Norte)
         ]);
 
+        // Función para actualizar y renderizar el agua usando la primitiva de bajo nivel
+        function updateWaterPrimitive(height) {
+            if (!viewer) return;
+
+            // Eliminar la primitiva anterior si existe
+            if (waterPrimitive) {
+                viewer.scene.primitives.remove(waterPrimitive);
+            }
+
+            // Crear el volumen geométrico de agua en la Sabana
+            const waterGeometry = new Cesium.PolygonGeometry({
+                polygonHierarchy: new Cesium.PolygonHierarchy(BASIN_COORDS),
+                height: height,
+                extrudedHeight: height - 1.0, // Profundidad ligera
+                vertexFormat: Cesium.EllipsoidSurfaceAppearance.VERTEX_FORMAT
+            });
+
+            const geometryInstance = new Cesium.GeometryInstance({
+                geometry: waterGeometry
+            });
+
+            // Usar EllipsoidSurfaceAppearance para que el agua siga la curvatura y reciba luz
+            waterPrimitive = new Cesium.Primitive({
+                geometryInstances: geometryInstance,
+                appearance: new Cesium.EllipsoidSurfaceAppearance({
+                    material: waterMaterial,
+                    aboveGround: true
+                }),
+                show: true
+            });
+
+            viewer.scene.primitives.add(waterPrimitive);
+        }
+
         // Inicialización al cargar el DOM
         window.addEventListener('load', async function() {
             const loader = document.getElementById('loader');
@@ -727,29 +759,60 @@
             try {
                 loaderText.innerText = "Configurando terreno 3D real...";
                 
-                // 1. Cargar el proveedor de Terreno Cesium World Terrain (alta resolución)
-                const terrainProvider = await Cesium.createWorldTerrainAsync({
-                    requestVertexNormals: true, // Requerido para luces y sombras realistas
-                    requestWaterMask: true
-                });
+                // 1. Cargar el proveedor de Terreno (Con ArcGIS de primero para evitar fallos de token en Cesium Ion)
+                let terrainProvider;
+                try {
+                    terrainProvider = await Cesium.ArcGISTiledElevationTerrainProvider.fromUrl(
+                        "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer"
+                    );
+                    console.log("ArcGIS World Elevation Terrain cargado con éxito.");
+                } catch (err) {
+                    console.warn("Fallo al cargar ArcGIS Terrain. Intentando Cesium World Terrain como fallback:", err);
+                    try {
+                        terrainProvider = await Cesium.createWorldTerrainAsync({
+                            requestVertexNormals: true,
+                            requestWaterMask: true
+                        });
+                        console.log("Cesium World Terrain cargado con éxito.");
+                    } catch (err2) {
+                        console.error("Fallo al cargar ambos terrenos. Usando elipsoide plano:", err2);
+                        terrainProvider = new Cesium.EllipsoidTerrainProvider();
+                    }
+                }
 
                 loaderText.innerText = "Cargando mapa base satelital...";
 
-                // 2. Crear proveedor de imágenes satelitales (Sentinel-2 de Ion) para aspecto fotorrealista
-                const imageryProvider = await Cesium.createWorldImageryAsync({
-                    style: Cesium.IonWorldImageryStyle.AERIAL
-                });
+                // 2. Crear proveedor de imágenes satelitales (Con ArcGIS de primero para evitar fallos de token en Cesium Ion)
+                let imageryProvider;
+                try {
+                    imageryProvider = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+                        "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer"
+                    );
+                    console.log("ArcGIS World Imagery cargado con éxito.");
+                } catch (err) {
+                    console.warn("Fallo al cargar imágenes de ArcGIS. Intentando Cesium Ion como fallback:", err);
+                    try {
+                        imageryProvider = await Cesium.createWorldImageryAsync({
+                            style: Cesium.IonWorldImageryStyle.AERIAL
+                        });
+                        console.log("Imágenes de Cesium Ion cargadas con éxito.");
+                    } catch (err2) {
+                        console.warn("Fallo al cargar imágenes de Cesium Ion. Usando OpenStreetMap como fallback:", err2);
+                        imageryProvider = new Cesium.OpenStreetMapImageryProvider({
+                            url: 'https://a.tile.openstreetmap.org/'
+                        });
+                    }
+                }
 
                 loaderText.innerText = "Iniciando motor 3D...";
 
-                // 3. Crear el visor Cesium.Viewer
+                // 3. Crear el visor Cesium.Viewer con baseLayer: false para evitar cargar Ion por defecto
                 viewer = new Cesium.Viewer('cesiumContainer', {
-                    terrainProvider: terrainProvider,
-                    baseLayer: new Cesium.ImageryLayer(imageryProvider),
+                    baseLayer: false,
                     baseLayerPicker: false, // Desactivado para simplificar la interfaz
                     geocoder: false,
                     homeButton: false,
-                    infoBox: false,
+                    infoButton: false,
                     selectionIndicator: false,
                     navigationHelpButton: false,
                     sceneModePicker: false,
@@ -757,6 +820,16 @@
                     animation: false,
                     shadows: true // Habilitar sombras dinámicas globales
                 });
+
+                // Asignar el proveedor de imágenes de forma robusta e independiente de versión
+                if (imageryProvider) {
+                    viewer.imageryLayers.addImageryProvider(imageryProvider);
+                }
+
+                // Asignar el proveedor de terreno de forma robusta e independiente de versión
+                if (terrainProvider) {
+                    viewer.terrainProvider = terrainProvider;
+                }
 
                 // 4. Activar sistema de sombras e iluminación solar hiperrealista
                 viewer.scene.globe.enableLighting = true; // Activa iluminación del sol basada en la hora
@@ -782,12 +855,12 @@
                 loaderText.innerText = "Modelando el espejo de agua...";
 
                 // 7. Crear el Espejo de Agua hiperrealista utilizando el Water Material de Cesium
+                // buildModuleUrl resuelve la textura desde la CDN de CesiumJS (sin problemas de CORS)
                 waterMaterial = new Cesium.Material({
                     fabric: {
                         type: 'Water',
                         uniforms: {
-                            // Textura de normales para simular el oleaje en Cesium
-                            normalMap: 'https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Assets/Textures/waterNormals.jpg',
+                            normalMap: Cesium.buildModuleUrl('Assets/Textures/waterNormals.jpg'),
                             frequency: 900.0,       // Escala de las olas
                             animationSpeed: 0.03,  // Velocidad de movimiento del agua
                             amplitude: 5.0,        // Altura de las olas
@@ -799,18 +872,8 @@
                     }
                 });
 
-                // Creamos la Entidad Polígono con CallbackProperty para que la altura cambie fluidamente al arrastrar el slider
-                waterEntity = viewer.entities.add({
-                    name: 'Gran Laguna de la Sabana',
-                    polygon: {
-                        hierarchy: BASIN_COORDS,
-                        height: new Cesium.CallbackProperty(function() {
-                            return currentWaterHeight;
-                        }, false),
-                        material: waterMaterial,
-                        outline: false
-                    }
-                });
+                // Cargar el agua inicialmente usando la primitiva
+                updateWaterPrimitive(currentWaterHeight);
 
                 // 8. Inicializar los miradores en la UI
                 initPeakControls();
@@ -867,6 +930,7 @@
                 const val = parseFloat(e.target.value);
                 currentWaterHeight = val;
                 waterDisplay.innerText = `${val} msnm`;
+                updateWaterPrimitive(val);
             });
 
             // Configurar el Slider del Sol (Reloj)
@@ -1001,6 +1065,7 @@
                     currentWaterHeight -= 0.5; // Baja de a medio metro en cada iteración
                     waterSlider.value = currentWaterHeight;
                     waterDisplay.innerText = `${Math.round(currentWaterHeight)} msnm`;
+                    updateWaterPrimitive(currentWaterHeight);
                 } else {
                     // Drenaje completado (laguna seca)
                     clearInterval(drainageInterval);
@@ -1020,6 +1085,7 @@
             currentWaterHeight = 2575.0;
             waterSlider.value = currentWaterHeight;
             waterDisplay.innerText = `2575 msnm`;
+            updateWaterPrimitive(currentWaterHeight);
             
             btn.innerHTML = "🌊 Simular Apertura del Tequendama";
             btn.onclick = toggleTequendamaDrainage;
