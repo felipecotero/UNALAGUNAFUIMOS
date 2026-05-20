@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor Histórico de la Sabana de Bogotá: El Espejo de Agua</title>
+    <meta name="description" content="Visualización 3D interactiva de la Laguna de la Sabana de Bogotá hace 12.500 años, con la mitología Muisca de Bochica y el Salto del Tequendama.">
+    <!-- Favicon inline SVG para evitar 404 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌊</text></svg>">
 
     <!-- Política de Seguridad del Contenido (CSP) recomendada y probada -->
     <meta http-equiv="Content-Security-Policy" 
@@ -12,7 +15,8 @@
                    style-src * 'unsafe-inline'; 
                    img-src * data: blob:; 
                    worker-src * 'unsafe-inline' 'unsafe-eval' data: blob:; 
-                   frame-src * data: blob:; 
+                   frame-src * data: blob: about:; 
+                   child-src * data: blob: about:;
                    connect-src * wss: ws: data: blob:;
                    font-src * data:;
                    object-src 'none';
@@ -813,8 +817,14 @@
                 loaderText.innerText = "Iniciando motor 3D...";
 
                 // 3. Crear el visor Cesium.Viewer con baseLayer: false para evitar cargar Ion por defecto
+                // creditContainer propio evita que Cesium cree un iframe a about:blank (que el browser bloquea como sandbox)
+                const creditContainer = document.createElement('div');
+                creditContainer.style.display = 'none';
+                document.body.appendChild(creditContainer);
+
                 viewer = new Cesium.Viewer('cesiumContainer', {
                     baseLayer: false,
+                    creditContainer: creditContainer,
                     baseLayerPicker: false, // Desactivado para simplificar la interfaz
                     geocoder: false,
                     homeButton: false,

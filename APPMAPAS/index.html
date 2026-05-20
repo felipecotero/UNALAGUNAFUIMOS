@@ -5,13 +5,14 @@
     <title>Altiplanicie Lago Afluentes</title>
 
     <meta http-equiv="Content-Security-Policy" 
-          content="default-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.virtualearth.net https://api.cesium.com https://assets.cesium.com https://ion.cesium.com https://cesium.com https://*.cesium.com; 
+          content="default-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.virtualearth.net https://api.cesium.com https://assets.cesium.com https://ion.cesium.com https://cesium.com https://*.cesium.com https://elevation3d.arcgis.com https://services.arcgisonline.com; 
                    script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://*.virtualearth.net https://cesium.com https://*.cesium.com; 
                    style-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cesium.com https://*.cesium.com; 
-                   img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.virtualearth.net https://cesium.com https://*.cesium.com https://api.cesium.com https://assets.cesium.com https://ion.cesium.com; 
+                   img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.virtualearth.net https://cesium.com https://*.cesium.com https://api.cesium.com https://assets.cesium.com https://ion.cesium.com https://services.arcgisonline.com; 
                    worker-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; 
                    frame-src 'self' data: blob: about:; 
-                   connect-src 'self' data: blob: wss: ws: https://*.tile.openstreetmap.org https://*.virtualearth.net https://api.cesium.com https://assets.cesium.com https://ion.cesium.com https://cesium.com https://*.cesium.com;
+                   child-src 'self' data: blob: about:;
+                   connect-src 'self' data: blob: wss: ws: https://*.tile.openstreetmap.org https://*.virtualearth.net https://api.cesium.com https://assets.cesium.com https://ion.cesium.com https://cesium.com https://*.cesium.com https://elevation3d.arcgis.com https://services.arcgisonline.com;
                    font-src 'self' data: https://cesium.com https://*.cesium.com;
                    object-src 'none';
                    base-uri 'self';
@@ -112,10 +113,16 @@
 
                 if (cesiumContainer) cesiumContainer.innerHTML = '';
 
+                // creditContainer propio evita el iframe a about:blank bloqueado
+                const creditContainer = document.createElement('div');
+                creditContainer.style.display = 'none';
+                document.body.appendChild(creditContainer);
+
                 console.log("Inicializando Cesium.Viewer...");
                 const viewer = new Cesium.Viewer('cesiumContainer', {
                     baseLayer: false,
                     baseLayerPicker: false,
+                    creditContainer: creditContainer
                 });
 
                 if (terrainProviderInstance) {

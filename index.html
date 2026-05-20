@@ -10,7 +10,8 @@
                    style-src * 'unsafe-inline';
                    img-src * data: blob:;
                    worker-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
-                   frame-src * data: blob:;
+                   frame-src * data: blob: about:;
+                   child-src * data: blob: about:;
                    connect-src * wss: ws: data: blob:;
                    font-src * data:;
                    object-src 'none';
@@ -397,12 +398,17 @@
                     console.warn("ArcGIS terrain falló, usando elipsoide:", e);
                 }
 
+                const creditContainer = document.createElement('div');
+                creditContainer.style.display = 'none';
+                document.body.appendChild(creditContainer);
+
                 const viewer = new Cesium.Viewer('cesiumContainer', {
                     baseLayer: false, baseLayerPicker: false, geocoder: false,
                     animation: false, timeline: false, fullscreenButton: true,
                     scene3DOnly: false, selectionIndicator: false, infoBox: false,
                     skyBox: false, skyAtmosphere: false,
                     homeButton: true, sceneModePicker: true,
+                    creditContainer: creditContainer,
                     contextOptions: { webgl: { alpha: true } }
                 });
 
