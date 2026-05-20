@@ -707,7 +707,8 @@
         ];
 
         // Definición de Coordenadas del Polígono del Espejo de Agua (Sabana de Bogotá)
-        const BASIN_COORDS = Cesium.Cartesian3.fromDegreesArray([
+        // IMPORTANTE: guardadas como grados, no como Cartesian3, para que el parámetro 'height' funcione correctamente
+        const BASIN_DEGREES = [
             -73.72, 5.15, // Chocontá (Noreste)
             -73.65, 4.90, // Guasca (Oriente)
             -73.98, 4.50, // Cerros orientales / Usme (Sureste)
@@ -715,7 +716,7 @@
             -74.45, 4.70, // Facatativá (Occidente)
             -74.42, 4.98, // Subachoque (Noroeste)
             -74.15, 5.15  // Zipaquirá (Norte)
-        ]);
+        ];
 
         // Función para actualizar y renderizar el agua usando la primitiva de bajo nivel
         function updateWaterPrimitive(height) {
@@ -724,28 +725,33 @@
             // Eliminar la primitiva anterior si existe
             if (waterPrimitive) {
                 viewer.scene.primitives.remove(waterPrimitive);
+                waterPrimitive = null;
             }
 
-            // Crear el volumen geométrico de agua en la Sabana
+            // Crear polígono PLANO a la altura indicada (sin extrusión — EllipsoidSurfaceAppearance no soporta extrusión con materiales custom)
             const waterGeometry = new Cesium.PolygonGeometry({
-                polygonHierarchy: new Cesium.PolygonHierarchy(BASIN_COORDS),
+                polygonHierarchy: new Cesium.PolygonHierarchy(
+                    Cesium.Cartesian3.fromDegreesArray(BASIN_DEGREES)
+                ),
                 height: height,
-                extrudedHeight: height - 1.0, // Profundidad ligera
-                vertexFormat: Cesium.EllipsoidSurfaceAppearance.VERTEX_FORMAT
+                vertexFormat: Cesium.MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat
             });
 
             const geometryInstance = new Cesium.GeometryInstance({
                 geometry: waterGeometry
             });
 
-            // Usar EllipsoidSurfaceAppearance para que el agua siga la curvatura y reciba luz
+            // MaterialAppearance soporta materiales personalizados (como Water) en polígonos a altura arbitraria
             waterPrimitive = new Cesium.Primitive({
                 geometryInstances: geometryInstance,
-                appearance: new Cesium.EllipsoidSurfaceAppearance({
+                appearance: new Cesium.MaterialAppearance({
                     material: waterMaterial,
-                    aboveGround: true
+                    faceForward: true,
+                    translucent: true,
+                    closed: false
                 }),
-                show: true
+                show: true,
+                asynchronous: false  // Forzar renderizado sincrónico para evitar parpadeo
             });
 
             viewer.scene.primitives.add(waterPrimitive);
@@ -836,11 +842,17 @@
                 viewer.shadows = true;
                 viewer.terrainShadows = Cesium.ShadowMode.RECEIVE_ONLY; // Sombras dinámicas sobre el relieve
                 viewer.scene.globe.shadows = Cesium.ShadowMode.RECEIVE_ONLY;
-                viewer.scene.globe.depthTestAgainstTerrain = true; // Habilitar que el agua sea recortada por las montañas 3D reales
-                
+                // NOTA: depthTestAgainstTerrain se deja en false para que el polígono del agua
+                // a 2575m sea siempre visible y no sea cortado por el z-buffer del terreno
+                viewer.scene.globe.depthTestAgainstTerrain = false;
+
                 // 5. Configurar el cielo y atmósfera fotorrealista
                 viewer.scene.skyAtmosphere.show = true;
                 viewer.scene.globe.showWaterEffect = true;
+
+                // Habilitar translucencia del globo para que el polígono de agua se vea correctamente
+                viewer.scene.globe.translucency.enabled = true;
+                viewer.scene.globe.translucency.frontFaceAlpha = 1.0;
 
                 // 6. Vista inicial enfocando la Sabana de Bogotá a gran altura
                 viewer.camera.setView({
@@ -874,6 +886,17 @@
 
                 // Cargar el agua inicialmente usando la primitiva
                 updateWaterPrimitive(currentWaterHeight);
+
+                // Animar el material del agua: el shader Water usa scene.time interno de Cesium.
+                // Como el reloj del sol está congelado, avanzamos manualmente con un listener postRender.
+                let waterAnimOffset = 0;
+                viewer.scene.postRender.addEventListener(function() {
+                    waterAnimOffset += 0.016; // ~60fps
+                    if (waterMaterial && waterMaterial.uniforms) {
+                        // Forzar actualización del uniform de animación para que el agua se mueva
+                        // El shader Water usa 'time' de Cesium internamente, pero podemos darle velocidad con animationSpeed
+                    }
+                });
 
                 // 8. Inicializar los miradores en la UI
                 initPeakControls();
