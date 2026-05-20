@@ -745,7 +745,7 @@
                 // 3. Crear el visor Cesium.Viewer
                 viewer = new Cesium.Viewer('cesiumContainer', {
                     terrainProvider: terrainProvider,
-                    imageryProvider: imageryProvider,
+                    baseLayer: new Cesium.ImageryLayer(imageryProvider),
                     baseLayerPicker: false, // Desactivado para simplificar la interfaz
                     geocoder: false,
                     homeButton: false,
@@ -763,6 +763,7 @@
                 viewer.shadows = true;
                 viewer.terrainShadows = Cesium.ShadowMode.RECEIVE_ONLY; // Sombras dinámicas sobre el relieve
                 viewer.scene.globe.shadows = Cesium.ShadowMode.RECEIVE_ONLY;
+                viewer.scene.globe.depthTestAgainstTerrain = true; // Habilitar que el agua sea recortada por las montañas 3D reales
                 
                 // 5. Configurar el cielo y atmósfera fotorrealista
                 viewer.scene.skyAtmosphere.show = true;
@@ -786,7 +787,7 @@
                         type: 'Water',
                         uniforms: {
                             // Textura de normales para simular el oleaje en Cesium
-                            normalMap: Cesium.buildModuleUrl('Assets/Textures/waterNormals.jpg'),
+                            normalMap: 'https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Assets/Textures/waterNormals.jpg',
                             frequency: 900.0,       // Escala de las olas
                             animationSpeed: 0.03,  // Velocidad de movimiento del agua
                             amplitude: 5.0,        // Altura de las olas
