@@ -1107,7 +1107,7 @@
                     polyline: {
                         positions: Cesium.Cartesian3.fromDegreesArray(river.coords),
                         width: river.width,
-                        material: new Cesium.ColorMaterialProperty(Cesium.Color.fromCssString('#00f3ff')),
+                        material: new Cesium.ColorMaterialProperty(Cesium.Color.fromCssColorString('#00f3ff')),
                         clampToGround: true // Hace que dibuje perfectamente sobre la topografía 3D de las montañas
                     }
                 });
@@ -1138,9 +1138,9 @@
                 group: 'camellon',
                 polygon: {
                     hierarchy: camellonesRegion1,
-                    material: Cesium.Color.fromCssString('#00ffaa').withAlpha(0.22),
+                    material: Cesium.Color.fromCssColorString('#00ffaa').withAlpha(0.22),
                     outline: true,
-                    outlineColor: Cesium.Color.fromCssString('#00ffaa'),
+                    outlineColor: Cesium.Color.fromCssColorString('#00ffaa'),
                     outlineWidth: 3,
                     height: 2555.0 // Altura sobre el lecho del humedal
                 }
@@ -1151,9 +1151,9 @@
                 group: 'camellon',
                 polygon: {
                     hierarchy: camellonesRegion2,
-                    material: Cesium.Color.fromCssString('#00ffaa').withAlpha(0.22),
+                    material: Cesium.Color.fromCssColorString('#00ffaa').withAlpha(0.22),
                     outline: true,
-                    outlineColor: Cesium.Color.fromCssString('#00ffaa'),
+                    outlineColor: Cesium.Color.fromCssColorString('#00ffaa'),
                     outlineWidth: 3,
                     height: 2555.0
                 }
