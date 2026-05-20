@@ -1,0 +1,9 @@
+# Ignorar archivos temporales y metadatos de macOS
+._*
+.DS_Store
+
+# Ignorar archivos excesivamente grandes que superan el límite de 100MB de GitHub
+*Panorama_sin_título-1.png
+*Panorama_sin_título-1.png
+*.zip
+*.tar.gz

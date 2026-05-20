@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Altiplanicie Lago Afluentes</title>
+
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.virtualearth.net https://api.cesium.com https://assets.cesium.com https://ion.cesium.com https://cesium.com https://*.cesium.com; 
+                   script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://*.virtualearth.net https://cesium.com https://*.cesium.com; 
+                   style-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cesium.com https://*.cesium.com; 
+                   img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.virtualearth.net https://cesium.com https://*.cesium.com https://api.cesium.com https://assets.cesium.com https://ion.cesium.com; 
+                   worker-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; 
+                   frame-src 'self' data: blob: about:; 
+                   connect-src 'self' data: blob: wss: ws: https://*.tile.openstreetmap.org https://*.virtualearth.net https://api.cesium.com https://assets.cesium.com https://ion.cesium.com https://cesium.com https://*.cesium.com;
+                   font-src 'self' data: https://cesium.com https://*.cesium.com;
+                   object-src 'none';
+                   base-uri 'self';
+                   form-action 'self';">
+
+    <script>
+        // Define CESIUM_BASE_URL para ayudar a CesiumJS a encontrar sus assets.
+        window.CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/';
+        console.log("CESIUM_BASE_URL definido:", window.CESIUM_BASE_URL);
+
+        // Función para manejar errores si Cesium.js no se puede cargar desde la CDN.
+        function handleCesiumLoadError(event) {
+            console.error("Error CRÍTICO al cargar Cesium.js desde la CDN:", event);
+            const statusDiv = document.getElementById('statusMessage');
+            const cesiumContainer = document.getElementById('cesiumContainer');
+            const errorMessageHTML = '<h1 style="color:red; text-align:center; padding: 50px;">Error CRÍTICO: No se pudo cargar Cesium.js desde la CDN. Verifica tu conexión a internet, la consola (F12) y la configuración de CSP.</h1>';
+            
+            if (statusDiv) {
+                statusDiv.innerHTML = 'Error CRÍTICO: Cesium.js NO CARGADO.';
+                statusDiv.style.backgroundColor = 'red';
+                statusDiv.style.color = 'white';
+            }
+            if (cesiumContainer) {
+                cesiumContainer.innerHTML = errorMessageHTML;
+            } else if (document.body) {
+                document.body.innerHTML = errorMessageHTML;
+            } else {
+                setTimeout(() => {
+                    if (document.body) document.body.innerHTML = errorMessageHTML;
+                    else alert("Error CRÍTICO: No se pudo cargar Cesium.js Y el body no está disponible.");
+                }, 100);
+            }
+        }
+    </script>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Cesium.js" onerror="handleCesiumLoadError(event)"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <style>
+        html, body, #cesiumContainer { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }
+        #cesiumContainer { background-color: lightblue; }
+        #statusMessage {
+            position: absolute; top: 10px; left: 10px; background-color: rgba(255, 255, 0, 0.8);
+            padding: 10px; border: 1px solid orange; border-radius:5px; z-index: 10000; font-size: 12px;
+        }
+        .error-message-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: rgba(255,100,100,0.9); color: white; padding: 20px; 
+            border-radius: 5px; text-align: center; z-index: 20000;
+        }
+        .cesium-widget-credits { display: none !important; }
+    </style>
+</head>
+<body>
+    <div id="statusMessage">Cargando script Cesium.js...</div>
+    <div id="cesiumContainer">
+        <p style="padding: 20px; text-align: center;">Si ves esto por más de unos segundos, CesiumJS aún no se ha inicializado o ha fallado.</p>
+    </div>
+
+    <script>
+        window.addEventListener('load', async function() {
+            const statusMessageDiv = document.getElementById('statusMessage');
+            const cesiumContainer = document.getElementById('cesiumContainer');
+
+            if (typeof Cesium === 'undefined') {
+                if (statusMessageDiv) {
+                    statusMessageDiv.innerHTML = '<span style="color:red; font-weight:bold;">Error: Cesium no está definido. Cesium.js no se cargó o falló.</span>';
+                    statusMessageDiv.style.backgroundColor = 'red'; statusMessageDiv.style.color = 'white';
+                }
+                console.error("Cesium no está definido. El script Cesium.js no se cargó o falló.");
+                if (cesiumContainer) cesiumContainer.innerHTML = '<div class="error-message-overlay"><b>Error Fatal:</b><br>Cesium.js no se pudo cargar. Revisa la consola (F12).</div>';
+                return;
+            }
+
+            if (statusMessageDiv) statusMessageDiv.innerHTML = 'Cesium.js cargado. Iniciando visor...';
+            console.log("Cesium.js cargado. Iniciando visor (CSP Sintaxis Corregida y OSM)...");
+            
+            Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMTZiNWVjNi1jZTI3LTRjNjktOTUwMi04NWZlYTdiM2M4ZDIiLCJpZCI6MzAyNTUwLCJpYXQiOjE3NDcyNjA3MDV9.a54xRw4uqeucut0ipo8dcYrycXNHMkq4YtoXThS4taU';
+
+            if (Cesium.Ion.defaultAccessToken === 'TU_CESIUM_ION_ACCESS_TOKEN' || !Cesium.Ion.defaultAccessToken || Cesium.Ion.defaultAccessToken.length < 150) {
+                console.warn("ADVERTENCIA: El token de Cesium Ion parece ser el de ejemplo/corto. Asegúrate de usar tu token real si usas assets de Ion.");
+                if (statusMessageDiv) statusMessageDiv.innerHTML += '<br><span style="color:orange;font-weight:bold;">ADVERTENCIA: Token Cesium Ion no parece configurado.</span>';
+            }
+
+            try {
+                if (statusMessageDiv) statusMessageDiv.innerHTML = 'Configurando proveedores...';
+                
+                let terrainProviderInstance;
+                try {
+                    console.log("Intentando crear Cesium World Terrain...");
+                    terrainProviderInstance = await Cesium.createWorldTerrainAsync();
+                    console.log("Proveedor de terreno Cesium World Terrain creado.");
+                    if (statusMessageDiv) statusMessageDiv.innerHTML = 'Proveedor de terreno creado.';
+                } catch (terrainError) {
+                    console.error("Error al crear Cesium World Terrain:", terrainError);
+                    if (statusMessageDiv) statusMessageDiv.innerHTML = 'Error al crear proveedor de terreno. Se usará Elipsoide.';
+                }
+
+                let imageryProviderInstance;
+                try {
+                    console.log("Intentando crear OpenStreetMapImageryProvider...");
+                    imageryProviderInstance = new Cesium.OpenStreetMapImageryProvider({
+                        url : 'https://a.tile.openstreetmap.org/'
+                    });
+                    console.log("Proveedor de imágenes OpenStreetMap creado.");
+                    if(statusMessageDiv) statusMessageDiv.innerHTML = 'Proveedor OSM creado. Creando visor...';
+                } catch (osmError) {
+                     console.error("Error al crear OpenStreetMapImageryProvider:", osmError);
+                     if(statusMessageDiv) statusMessageDiv.innerHTML = 'Error fatal al crear proveedor de imágenes OSM.';
+                }
+                
+                if (cesiumContainer) cesiumContainer.innerHTML = ''; 
+
+                console.log("Inicializando Cesium.Viewer...");
+                const viewer = new Cesium.Viewer('cesiumContainer', {
+                    terrainProvider: terrainProviderInstance,
+                    imageryProvider: imageryProviderInstance, 
+                    baseLayerPicker: true, 
+                });
+                console.log("Cesium Viewer inicializado exitosamente.");
+                if (statusMessageDiv) {
+                    statusMessageDiv.style.backgroundColor = 'lightgreen';
+                    statusMessageDiv.innerHTML = '¡Visor Cesium cargado!';
+                    setTimeout(() => { if(statusMessageDiv) statusMessageDiv.style.display = 'none'; }, 7000);
+                }
+
+                setTimeout(() => {
+                    if (viewer.scene.globe.imageryLayers.length === 0 || (viewer.scene.globe.imageryLayers.length > 0 && !viewer.scene.globe.imageryLayers.get(0).show)) {
+                        console.warn("ADVERTENCIA POST-INICIALIZACIÓN: Las imágenes del mapa no son visibles. El globo podría estar azul.");
+                         if (statusMessageDiv && statusMessageDiv.style.display !== 'none') { 
+                            statusMessageDiv.innerHTML += '<br><span style="color:darkorange;font-weight:bold;">ADVERTENCIA: Globo sin imágenes. Revisa errores de "sandboxed frame".</span>';
+                            statusMessageDiv.style.backgroundColor = 'yellow';
+                        }
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'error-message-overlay';
+                        errorDiv.innerHTML = "<b>Problema al Cargar Imágenes del Mapa</b><br>El globo se inicializó, pero las imágenes base no se pudieron cargar o no son visibles.<br>Esto suele ser causado por restricciones de 'sandboxing' que impiden a los Web Workers de Cesium ejecutar scripts.<br><br><b>Sugerencias CRUCIALES:</b><br>1. <b>Usa un servidor local simple:</b> 'python3 -m http.server 8000' o 'npx http-server'. NO uses 'Live Server' para esta prueba si sospechas que causa el problema.<br>2. Abre la página desde la URL del servidor local (ej: http://localhost:8000/tu_archivo.html).<br>3. Prueba en un navegador diferente (Firefox, Safari).<br>4. Revisa la consola (F12) para errores 'Blocked script execution' o 'sandboxed'.";
+                        if(cesiumContainer && !cesiumContainer.querySelector('.error-message-overlay')) {
+                             cesiumContainer.appendChild(errorDiv);
+                        }
+                    }
+                }, 4000); 
+
+            } catch (error) {
+                console.error("Error CRÍTICO en la inicialización de Cesium:", error);
+                if (statusMessageDiv) {
+                    statusMessageDiv.innerHTML = `Error CRÍTICO al inicializar Cesium: ${error.toString()}`;
+                    statusMessageDiv.style.backgroundColor = 'red';
+                    statusMessageDiv.style.color = 'white';
+                }
+                if (cesiumContainer) {
+                     cesiumContainer.innerHTML = `<div class="error-message-overlay"><b>Error CRÍTICO al inicializar Cesium:</b><br>${error.toString()}<br><br>Revisa la consola (F12).</div>`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+```

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infografía: Convocatoria Jóvenes por el Cambio 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .flowchart-step {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .flowchart-step:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- 
+    Plan de Narrativa:
+    1.  Encabezado Impactante: Presentar el estímulo y el lema.
+    2.  Contexto Histórico: Vincular el programa al estallido social de 2021.
+    3.  Evolución Clave: Comparar 2024 vs 2025.
+    4.  Público Objetivo: Visualizar la diversidad de participantes.
+    5.  Proceso de Postulación: Un diagrama de flujo claro.
+    6.  Criterios de Evaluación: Un gráfico de barras para mostrar pesos.
+    7.  Impacto del Modelo: Beneficios del pago único.
+    8.  Accesibilidad: Destacar las medidas de apoyo.
+
+    Paleta de Colores Seleccionada: Energetic & Playful
+    HEX: #00A0B0 (Azul), #EB6841 (Naranja), #EDC951 (Amarillo), #CC333F (Rojo), #6A4A3C (Marrón).
+
+    Confirmación de Restricciones:
+    - NO se utilizó Mermaid JS.
+    - NO se utilizó SVG. Todos los elementos visuales son HTML/CSS o Canvas (Chart.js).
+    -->
+
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-6xl font-black text-[#00A0B0] uppercase tracking-wide">Jóvenes por el Cambio</h1>
+            <p class="text-xl md:text-2xl font-bold text-gray-700 mt-2">Segunda Edición (2025): Reconociendo Agendas para la Transformación Social</p>
+        </header>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border-l-8 border-[#CC333F]">
+            <h2 class="text-2xl font-bold text-gray-800 mb-3">Una Respuesta a las Voces de la Juventud</h2>
+            <p class="text-gray-600">Este programa nace como una respuesta directa del Gobierno a las masivas movilizaciones del **estallido social de 2021**. Es un esfuerzo por reconocer las reivindicaciones de la juventud colombiana y canalizar la energía de la protesta hacia la acción cultural constructiva, proporcionando un canal formal y financiado para que el cambio propuesto por los jóvenes se materialice en sus territorios.</p>
+        </div>
+
+        <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            <div class="lg:col-span-1 md:col-span-2 bg-white rounded-2xl shadow-lg p-6 flex flex-col justify-center items-center text-center border-t-8 border-[#EB6841]">
+                <p class="text-2xl font-bold text-gray-600">Estímulo por Colectivo</p>
+                <p class="text-7xl lg:text-8xl font-black text-[#00A0B0] my-2">$15</p>
+                <p class="text-4xl font-extrabold text-[#00A0B0]">Millones</p>
+                <p class="text-lg font-semibold text-gray-700 mt-3">en un pago único del 100%</p>
+                <p class="text-sm text-gray-500 mt-2">Un cambio radical para empoderar agendas de trabajo juvenil ya existentes.</p>
+            </div>
+
+            <div class="lg:col-span-2 md:col-span-2 bg-white rounded-2xl shadow-lg p-6 border-t-8 border-[#EDC951]">
+                <h2 class="text-2xl font-bold text-center mb-4">La Evolución del Programa: 2024 vs. 2025</h2>
+                <p class="text-center text-gray-600 mb-6">El programa ha madurado, cambiando su enfoque de financiar nuevos proyectos a reconocer y fortalecer procesos en marcha. Este es un giro estratégico hacia la confianza y la sostenibilidad.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-gray-100 rounded-lg p-4">
+                        <h3 class="font-bold text-lg text-center">Convocatoria 2024</h3>
+                        <ul class="mt-2 space-y-2 text-sm">
+                            <li><span class="font-bold">Modalidad:</span> Financiación de Proyectos</li>
+                            <li><span class="font-bold">Monto:</span> $12 Millones</li>
+                            <li><span class="font-bold">Pago:</span> 80% inicial, 20% final</li>
+                        </ul>
+                    </div>
+                    <div class="bg-[#00A0B0] text-white rounded-lg p-4 ring-4 ring-[#00A0B0]/30">
+                        <h3 class="font-bold text-lg text-center">Convocatoria 2025</h3>
+                         <ul class="mt-2 space-y-2 text-sm">
+                            <li><span class="font-bold">Modalidad:</span> Reconocimiento a Agendas</li>
+                            <li><span class="font-bold">Monto:</span> $15 Millones</li>
+                            <li><span class="font-bold">Pago:</span> 100% en un único desembolso</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3 bg-white rounded-2xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-center mb-4">Un Llamado a la Diversidad: ¿Quiénes Pueden Participar?</h2>
+                <p class="text-center text-gray-600 mb-6 max-w-3xl mx-auto">La convocatoria está dirigida a colectivos de 3 o más jóvenes (18-28 años) y busca activamente la participación de una amplia gama de voces para asegurar una representación plural y equitativa de las juventudes del país.</p>
+                <div class="chart-container max-w-md mx-auto">
+                    <canvas id="diversityChart"></canvas>
+                </div>
+                <p class="text-xs text-center text-gray-500 mt-2">El gráfico es una representación visual del enfoque inclusivo, no una distribución estadística de ganadores anteriores.</p>
+            </div>
+            
+            <div class="lg:col-span-3 bg-white rounded-2xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-center mb-6">El Camino a la Postulación: Un Proceso Claro y Definido</h2>
+                <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">El proceso de postulación es 100% digital a través del portal oficial. Sigue estos cuatro pasos clave para presentar la agenda de tu colectivo.</p>
+                <div class="flex flex-col md:flex-row justify-between items-center space-y-8 md:space-y-0 md:space-x-4">
+                    
+                    <div class="flowchart-step text-center w-full md:w-1/4">
+                        <div class="bg-[#00A0B0] text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto text-3xl font-black">1</div>
+                        <h3 class="font-bold mt-3">Crear Usuario</h3>
+                        <p class="text-sm text-gray-600">Regístrate en la plataforma del Ministerio.</p>
+                    </div>
+
+                    <div class="text-[#EB6841] text-2xl font-bold hidden md:block">→</div>
+
+                    <div class="flowchart-step text-center w-full md:w-1/4">
+                        <div class="bg-[#00A0B0] text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto text-3xl font-black">2</div>
+                        <h3 class="font-bold mt-3">Preparar Documentos</h3>
+                        <p class="text-sm text-gray-600">Reúne las evidencias de tu agenda en un solo PDF.</p>
+                    </div>
+                    
+                    <div class="text-[#EB6841] text-2xl font-bold hidden md:block">→</div>
+
+                    <div class="flowchart-step text-center w-full md:w-1/4">
+                        <div class="bg-[#00A0B0] text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto text-3xl font-black">3</div>
+                        <h3 class="font-bold mt-3">Grabar Video</h3>
+                        <p class="text-sm text-gray-600">Crea un video de 7 a 9 minutos presentando tu colectivo y su trabajo.</p>
+                    </div>
+
+                    <div class="text-[#EB6841] text-2xl font-bold hidden md:block">→</div>
+
+                    <div class="flowchart-step text-center w-full md:w-1/4">
+                        <div class="bg-[#EB6841] text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto text-3xl font-black">4</div>
+                        <h3 class="font-bold mt-3">Enviar Postulación</h3>
+                        <p class="text-sm text-gray-600">Sube tus archivos y completa el formulario antes del 24 de julio de 2025.</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 md:col-span-2 bg-white rounded-2xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-center mb-4">Criterios de Evaluación: ¿Qué Busca el Jurado?</h2>
+                 <p class="text-center text-gray-600 mb-6">La evaluación se centra en la solidez y el impacto de la agenda de trabajo existente del colectivo. La mayor parte del puntaje se asigna a la incidencia y las actividades ya realizadas, demostrando el valor de los procesos en curso.</p>
+                <div class="chart-container max-w-2xl mx-auto">
+                    <canvas id="criteriaChart"></canvas>
+                </div>
+                 <p class="text-xs text-center text-gray-500 mt-2">+5 puntos extra para colectivos con Consejeros de Juventud.</p>
+            </div>
+
+            <div class="lg:col-span-1 md:col-span-2 bg-white rounded-2xl shadow-lg p-6 border-t-8 border-[#00A0B0]">
+                <h2 class="text-2xl font-bold text-center mb-6">Superando la Brecha Digital</h2>
+                 <p class="text-center text-gray-600 mb-6">Reconociendo los desafíos de un proceso 100% digital, el Ministerio ha implementado medidas de apoyo para garantizar un acceso más equitativo.</p>
+                 <ul class="space-y-4">
+                    <li class="flex items-start">
+                        <span class="text-2xl mr-3">💬</span>
+                        <div>
+                            <h3 class="font-bold">Mentorías Virtuales</h3>
+                            <p class="text-sm text-gray-600">Asesorías personalizadas para resolver dudas sobre la postulación.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                         <span class="text-2xl mr-3">🤟</span>
+                        <div>
+                            <h3 class="font-bold">Intérpretes LSC</h3>
+                            <p class="text-sm text-gray-600">Inclusión de intérpretes de Lengua de Señas Colombiana en las socializaciones.</p>
+                        </div>
+                    </li>
+                     <li class="flex items-start">
+                         <span class="text-2xl mr-3">📞</span>
+                        <div>
+                            <h3 class="font-bold">Canales de Atención</h3>
+                            <p class="text-sm text-gray-600">Líneas telefónicas y correos electrónicos dedicados para soporte técnico y de contenido.</p>
+                        </div>
+                    </li>
+                 </ul>
+            </div>
+            
+        </main>
+
+        <footer class="text-center mt-12 py-6 border-t">
+            <p class="text-sm text-gray-500">Esta infografía es una interpretación visual de los documentos públicos de la convocatoria "Jóvenes por el Cambio 2025" del Ministerio de las Culturas, las Artes y los Saberes de Colombia. La información es vigente a julio de 2025.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        const wrapLabel = (str, maxWidth) => {
+            if (typeof str !== 'string' || str.length <= maxWidth) {
+                return str;
+            }
+            const words = str.split(' ');
+            let lines = [];
+            let currentLine = words[0];
+            for (let i = 1; i < words.length; i++) {
+                if (currentLine.length + words[i].length + 1 < maxWidth) {
+                    currentLine += ' ' + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        };
+
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            }
+            return label;
+        };
+
+        const chartOptionsTemplate = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                     labels: {
+                        font: {
+                            size: 12,
+                            family: 'Inter'
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: tooltipTitleCallback
+                    },
+                    bodyFont: {
+                        family: 'Inter'
+                    },
+                    titleFont: {
+                        family: 'Inter'
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { font: { family: 'Inter' } },
+                    grid: { display: false }
+                },
+                y: {
+                    ticks: { font: { family: 'Inter' } },
+                     grid: { color: '#e5e7eb' }
+                }
+            }
+        };
+
+        const diversityChartCtx = document.getElementById('diversityChart').getContext('2d');
+        new Chart(diversityChartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Mujeres', 'LGBTIQ+', 'Jóvenes Campesinos', 'Comunidades Étnicas', 'Barrismo Social', 'Vigías del Patrimonio'],
+                datasets: [{
+                    label: 'Foco en la Diversidad',
+                    data: [1, 1, 1, 1, 1, 1],
+                    backgroundColor: ['#00A0B0', '#EB6841', '#EDC951', '#CC333F', '#6A4A3C', '#4A8A78'],
+                    borderColor: '#ffffff',
+                    borderWidth: 4
+                }]
+            },
+            options: {
+                 responsive: true,
+                 maintainAspectRatio: false,
+                 plugins: {
+                     legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 20,
+                            padding: 15,
+                            font: {
+                                size: 12,
+                                family: 'Inter'
+                            }
+                        }
+                    },
+                     tooltip: {
+                         callbacks: {
+                            title: tooltipTitleCallback
+                         }
+                     }
+                 }
+            }
+        });
+
+        const criteriaChartCtx = document.getElementById('criteriaChart').getContext('2d');
+        const criteriaLabels = [
+            'Incidencia Cultural y Social de la Agenda', 
+            'Actividades Realizadas y Aprendizajes',
+            'Reconocimiento Social del Colectivo',
+            'Fortalecimiento que Aporta el Estímulo'
+        ];
+
+        new Chart(criteriaChartCtx, {
+            type: 'bar',
+            data: {
+                labels: criteriaLabels.map(label => wrapLabel(label, 25)),
+                datasets: [{
+                    label: 'Puntaje Máximo',
+                    data: [35, 30, 25, 10],
+                    backgroundColor: ['#00A0B0', '#EB6841', '#EDC951', '#6A4A3C'],
+                    borderRadius: 5
+                }]
+            },
+            options: { ...chartOptionsTemplate,
+                indexAxis: 'y',
+                 scales: {
+                    x: {
+                        grid: { display: true, color: '#f3f4f6' },
+                         ticks: { font: { family: 'Inter' } },
+                        beginAtZero: true
+                    },
+                    y: {
+                         grid: { display: false },
+                         ticks: { font: { family: 'Inter' } }
+                    }
+                },
+                 plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                         callbacks: {
+                            title: tooltipTitleCallback
+                         }
+                     }
+                 }
+            }
+        });
+
+    </script>
+</body>
+</html>

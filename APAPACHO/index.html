@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apapacho Cósmico en Dualidad Divina</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-nombre-linea1: #d9d9d9;
+            --color-nombre-linea2: #ff5757;
+            --color-texto-resaltado: #8c52ff;
+            --color-nombre-alternativo: #ffde59;
+            --color-nebulosa-claro: #2887bf;
+            --color-nebulosa-oscuro: #242659;
+            --color-fondo: #242659;
+            --font-titulos: 'Montserrat', sans-serif;
+            --font-cuerpo: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-cuerpo);
+            background-color: var(--color-fondo);
+            color: var(--color-nombre-linea1);
+            background-image: radial-gradient(ellipse at top left, var(--color-nebulosa-claro) 0%, transparent 50%),
+                              radial-gradient(ellipse at bottom right, var(--color-nebulosa-claro) 0%, transparent 50%),
+                              radial-gradient(circle at center, rgba(40, 135, 191, 0.2) 0%, var(--color-fondo) 70%);
+            background-attachment: fixed;
+        }
+
+        .hero-section {
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+            background-color: rgba(36, 38, 89, 0.7);
+        }
+
+        .section-bg-lugar {
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .section-bg-lugar::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(36, 38, 89, 0.85);
+            z-index: 1;
+        }
+        .section-bg-lugar > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        .event-title-main {
+            font-family: var(--font-titulos);
+            text-transform: uppercase;
+        }
+        .event-title-line1 { color: var(--color-nombre-linea1); }
+        .event-title-line2 { color: var(--color-nombre-linea2); }
+
+        .event-slogan {
+            font-family: var(--font-titulos);
+            text-transform: uppercase;
+            font-size: clamp(0.8rem, 2.5vw, 1.25rem); 
+            line-height: 1.3;
+            white-space: nowrap; 
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .event-date {
+            font-family: var(--font-titulos);
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .highlight-text { color: var(--color-texto-resaltado); }
+
+        .sabedor-card {
+            background-color: rgba(40, 135, 191, 0.1);
+            border: 1px solid var(--color-nebulosa-claro);
+        }
+        .sabedor-card h4 {
+            font-family: var(--font-titulos);
+        }
+
+        .cta-button {
+            background-color: var(--color-nombre-alternativo);
+            color: var(--color-fondo);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            font-family: var(--font-titulos);
+        }
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 222, 89, 0.3);
+        }
+        .cta-button-secondary {
+            background-color: var(--color-nombre-linea2);
+            color: white;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            font-family: var(--font-titulos);
+        }
+        .cta-button-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 87, 87, 0.3);
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle 5s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .section-title {
+            font-family: var(--font-titulos);
+            font-weight: 700;
+        }
+        .section-title .line1 { color: var(--color-nombre-linea1); }
+        .section-title .line2 { color: var(--color-nombre-linea2); }
+
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="stars" id="stars-container"></div>
+
+    <header class="py-6 fixed top-0 left-0 right-0 z-50 bg-opacity-80 backdrop-blur-md" style="background-color: rgba(36, 38, 89, 0.7);">
+        <div class="container mx-auto px-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold leading-tight event-title-main">
+                    <span class="event-title-line1 block">APAPACHO CÓSMICO</span>
+                    <span class="event-title-line2 block">EN DIVINA DUALIDAD</span>
+                </h1>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="#que-es" class="hover:text-yellow-300 transition-colors">El Llamado</a>
+                <a href="#sabedores" class="hover:text-yellow-300 transition-colors">Sabedores</a>
+                <a href="#cuando-cuanto" class="hover:text-yellow-300 transition-colors">El Encuentro</a>
+                <a href="#inscribete" class="hover:text-yellow-300 transition-colors">Inscríbete</a>
+            </nav>
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-white focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-opacity-90 backdrop-blur-md" style="background-color: rgba(36, 38, 89, 0.9);">
+            <a href="#que-es" class="block py-2 px-6 hover:bg-gray-700 transition-colors">El Llamado</a>
+            <a href="#sabedores" class="block py-2 px-6 hover:bg-gray-700 transition-colors">Sabedores</a>
+            <a href="#cuando-cuanto" class="block py-2 px-6 hover:bg-gray-700 transition-colors">El Encuentro</a>
+            <a href="#inscribete" class="block py-2 px-6 hover:bg-gray-700 transition-colors">Inscríbete</a>
+        </div>
+    </header>
+
+    <section class="hero-section min-h-screen flex items-center justify-center text-center pt-32 pb-12 px-4" style="background-image: url('https://imgur.com/6l8bAzW');">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight event-title-main" style="font-size: clamp(2.5rem, 8vw, 5.5rem);">
+                <span class="event-title-line1 block">APAPACHO CÓSMICO</span>
+                <span class="event-title-line2 block">EN DIVINA DUALIDAD</span>
+            </h2>
+            <p class="event-slogan mb-8" style="color: var(--color-nombre-alternativo);">
+                Caminar el propósito de manifestación del femenino y el masculino
+            </p>
+            <p class="event-date mb-10" style="color: var(--color-nombre-linea1);">
+                VIERNES 6, SÁBADO 7 Y DOMINGO 8 DE JUNIO DE 2025
+            </p>
+            <a href="#inscribete" class="cta-button text-lg font-bold py-4 px-10 rounded-lg shadow-lg">
+                Reserva tu Lugar
+            </a>
+        </div>
+    </section>
+
+    <section id="que-es" class="py-16 md:py-24 px-4">
+        <div class="container mx-auto max-w-3xl text-center">
+            <h3 class="text-3xl md:text-4xl font-bold mb-8 section-title">
+                <span class="line2">El Llamado</span> <span class="line1">a la Dualidad Divina</span>
+            </h3>
+            <p class="text-lg md:text-xl leading-relaxed">
+                Ven acompáñanos a descubrir y aprender de la <span class="highlight-text font-semibold">semilla del maíz</span> y la <span class="highlight-text font-semibold">planta de poder del yage</span>, prepararemos nuestros cuerpos, mentes y espíritus para activar la <span class="highlight-text font-semibold">serpiente dorada (kundalini)</span> y conectar con la <span class="highlight-text font-semibold">matriz del universo</span>, la lactancia del <span class="highlight-text font-semibold">“conocincierto”</span> y así parir la <span class="highlight-text font-semibold">divina dualidad del masculino y femenino</span> como principio y origen.
+            </p>
+        </div>
+    </section>
+
+    <section id="sabedores" class="py-16 md:py-24 px-4 section-bg-lugar" style="background-image: url('https://placehold.co/1920x800/2887bf/d9d9d9?text=Fondo+Seccion+Sabedores');">
+        <div class="container mx-auto">
+            <h3 class="text-3xl md:text-4xl font-bold mb-12 text-center section-title">
+                <span class="line1">Guardianes</span> <span class="line2">del Saber</span>
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="sabedor-card rounded-xl p-6 text-center shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                    <img src="https://imgur.com/Qkzqjso" alt="Imagen de Mamita Furani Moya" class="w-32 h-32 md:w-40 md:h-40 rounded-full mx-auto mb-4 border-4 border-yellow-300 object-cover">
+                    <h4 class="text-xl font-bold mb-1" style="color: var(--color-nombre-alternativo);">Mamita Furani Moya</h4>
+                    <p class="text-md" style="color: var(--color-nombre-linea1);">Renacer con la semilla - alimento del Maíz</p>
+                </div>
+                <div class="sabedor-card rounded-xl p-6 text-center shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                    <img src="https://imgur.com/qNekIlR" alt="Imagen de Mamita Wendy Díaz Waira" class="w-32 h-32 md:w-40 md:h-40 rounded-full mx-auto mb-4 border-4 border-pink-400 object-cover">
+                    <h4 class="text-xl font-bold mb-1" style="color: var(--color-nombre-alternativo);">Mamita Wendy Díaz Waira</h4>
+                    <p class="text-md" style="color: var(--color-nombre-linea1);">Visualizar la ruta con la medicina del Yagé.</p>
+                </div>
+                <div class="sabedor-card rounded-xl p-6 text-center shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                    <img src="https://imgur.com/YjVBrRj" alt="Imagen de Mamita Diana Benavidez" class="w-32 h-32 md:w-40 md:h-40 rounded-full mx-auto mb-4 border-4 border-purple-400 object-cover">
+                    <h4 class="text-xl font-bold mb-1" style="color: var(--color-nombre-alternativo);">Mamita Diana Benavidez</h4>
+                    <p class="text-md" style="color: var(--color-nombre-linea1);">Despertar la plenitud y la Serpiente Dorada (kundalini).</p>
+                </div>
+                <div class="sabedor-card rounded-xl p-6 text-center shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                    <img src="https://imgur.com/HVNZBP9" alt="Imagen de Taita Andres Córdoba" class="w-32 h-32 md:w-40 md:h-40 rounded-full mx-auto mb-4 border-4 border-blue-400 object-cover">
+                    <h4 class="text-xl font-bold mb-1" style="color: var(--color-nombre-alternativo);">Taita Andres Córdoba</h4>
+                    <p class="text-md" style="color: var(--color-nombre-linea1);">Enfocar el propósito</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="cuando-cuanto" class="py-16 md:py-24 px-4">
+        <div class="container mx-auto max-w-4xl text-center">
+            <h3 class="text-3xl md:text-4xl font-bold mb-12 section-title">
+                <span class="line1">El Encuentro</span> <span class="line2">Sagrado</span>
+            </h3>
+            <div class="grid md:grid-cols-2 gap-8 md:gap-12 items-start">
+                <div class="bg-opacity-20 p-6 rounded-lg shadow-lg" style="background-color: rgba(40, 135, 191, 0.15);">
+                    <h4 class="text-2xl font-bold mb-4 section-title" style="color: var(--color-nombre-alternativo);">¿Cuándo?</h4>
+                    <p class="text-lg mb-2">VIERNES 6, SÁBADO 7 Y DOMINGO 8</p>
+                    <p class="text-lg mb-4">DE JUNIO DE 2025</p>
+                    <p class="text-md">Desde las <span class="font-semibold">4:00 PM</span> del VIERNES</p>
+                </div>
+                <div class="bg-opacity-20 p-6 rounded-lg shadow-lg" style="background-color: rgba(40, 135, 191, 0.15);">
+                    <h4 class="text-2xl font-bold mb-4 section-title" style="color: var(--color-nombre-alternativo);">Aprecio Amoroso</h4>
+                    <p class="text-lg mb-1">Evento Completo: <span class="font-semibold">$240.000 COP</span></p>
+                    <p class="text-lg mb-1">Preventa (hasta [FECHA LÍMITE PREVENTA]): <span class="font-semibold">$200.000 COP</span></p>
+                    <p class="text-lg mb-4">Por Día: <span class="font-semibold">$90.000 COP</span></p>
+                    <p class="text-md highlight-text font-semibold">Incluye: Alimentación consciente y hospedaje en un entorno natural.</p>
+                </div>
+            </div>
+             <div class="mt-12 md:mt-16">
+                <h4 class="text-2xl font-bold mb-4 section-title" style="color: var(--color-nombre-alternativo);">¿Dónde?</h4>
+                <p class="text-lg mb-4">
+                    Disfruta de esta experiencia transformadora en un hermoso lugar rodeado de naturaleza,
+                    ideal para la introspección y la conexión profunda.
+                </p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
+                    <img src="https://imgur.com/j9MPsDd" alt="Imagen del lugar 1" class="rounded-lg shadow-md object-cover aspect-video">
+                    <img src="https://imgur.com/Lvw9cun" alt="Imagen del lugar 2" class="rounded-lg shadow-md object-cover aspect-video">
+                    <img src="https://imgur.com/VdKObzL" alt="Imagen del lugar 3" class="rounded-lg shadow-md object-cover aspect-video md:col-span-1 col-span-2">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="inscribete" class="py-16 md:py-24 px-4 section-bg-lugar" style="background-image: url('https://placehold.co/1920x800/242659/d9d9d9?text=Fondo+Inscripcion');">
+        <div class="container mx-auto max-w-2xl text-center">
+            <h3 class="text-3xl md:text-4xl font-bold mb-8 section-title">
+                <span class="line2">Únete</span> <span class="line1">al Círculo Cósmico</span>
+            </h3>
+            <p class="text-lg md:text-xl mb-8 leading-relaxed">
+                Asegura tu espacio en esta vivencia única. Los cupos son limitados.
+                Para inscribirte o solicitar más información, por favor contáctanos:
+            </p>
+            <div class="space-y-6">
+                <p class="text-xl">
+                    <strong style="color: var(--color-nombre-alternativo); font-family: var(--font-titulos);">Email:</strong> <a href="mailto:furanimoyateusaca@gmail.com" class="hover:underline">furanimoyateusaca@gmail.com</a>
+                </p>
+                <p class="text-xl">
+                    <strong style="color: var(--color-nombre-alternativo); font-family: var(--font-titulos);">WhatsApp:</strong> <a href="https://wa.me/573025797628" target="_blank" class="hover:underline">+57 302 5797628</a>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-12 text-center" style="background-color: var(--color-nebulosa-oscuro);">
+        <div class="container mx-auto px-6">
+            <p class="mb-2 text-lg event-title-main" style="font-family: var(--font-titulos);">
+                <span class="event-title-line1 block">APAPACHO CÓSMICO</span>
+                <span class="event-title-line2 block">EN DIVINA DUALIDAD</span>
+            </p>
+            <p class="text-sm" style="color: var(--color-nombre-linea1);">
+                &copy; 2025 Todos los derechos reservados.
+            </p>
+            <p class="text-sm mt-2" style="color: var(--color-nebulosa-claro);">
+                Un evento para el alma, tejido con amor.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Script para el menú móvil
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Cerrar menú móvil al hacer clic en un enlace
+        const mobileMenuLinks = mobileMenu.querySelectorAll('a');
+        mobileMenuLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+
+        // Script para generar estrellas aleatorias
+        const starsContainer = document.getElementById('stars-container');
+        const numStars = 100; // Número de estrellas
+
+        for (let i = 0; i < numStars; i++) {
+            let star = document.createElement('div');
+            star.className = 'star';
+            star.style.width = `${Math.random() * 2 + 1}px`;
+            star.style.height = star.style.width;
+            star.style.left = `${Math.random() * 100}%`;
+            star.style.top = `${Math.random() * 100}%`;
+            star.style.animationDelay = `${Math.random() * 5}s`; 
+            starsContainer.appendChild(star);
+        }
+    </script>
+
+</body>
+</html>

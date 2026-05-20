@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor Histórico de la Sabana de Bogotá: El Espejo de Agua</title>
+
+    <!-- Política de Seguridad del Contenido (CSP) recomendada y probada -->
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; 
+                   script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; 
+                   style-src * 'unsafe-inline'; 
+                   img-src * data: blob:; 
+                   worker-src * 'unsafe-inline' 'unsafe-eval' data: blob:; 
+                   frame-src * data: blob:; 
+                   connect-src * wss: ws: data: blob:;
+                   font-src * data:;
+                   object-src 'none';
+                   base-uri 'self';
+                   form-action 'self';">
+
+    <!-- Google Fonts para tipografía premium -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+
+    <!-- CesiumJS CDN v1.117 -->
+    <script>
+        window.CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/';
+    </script>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
+    <style>
+        /* Variables y Reset */
+        :root {
+            --primary: #00f3ff;
+            --secondary: #00ffaa;
+            --accent: #ff007f;
+            --bg-dark: rgba(10, 16, 26, 0.75);
+            --bg-dark-opaque: rgba(5, 8, 15, 0.95);
+            --border-glass: rgba(0, 243, 255, 0.2);
+            --text-light: #f3f6f9;
+            --text-muted: #8ea0b4;
+            --font-family-header: 'Outfit', sans-serif;
+            --font-family-body: 'Inter', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #020508;
+            font-family: var(--font-family-body);
+            color: var(--text-light);
+        }
+
+        /* Contenedor Cesium */
+        #cesiumContainer {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Ocultar créditos molestos de Cesium (para mantener UI limpia) */
+        .cesium-widget-credits {
+            display: none !important;
+        }
+
+        /* HUD Glassmorphism Floating UI */
+        .hud-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 380px;
+            max-height: calc(100vh - 40px);
+            z-index: 10;
+            background: var(--bg-dark);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(0, 243, 255, 0.05);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-glass) transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Scrollbar personalizado para navegadores webkit */
+        .hud-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .hud-panel::-webkit-scrollbar-thumb {
+            background-color: var(--border-glass);
+            border-radius: 3px;
+        }
+
+        header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+        }
+
+        h1 {
+            font-family: var(--font-family-header);
+            font-size: 24px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* Secciones */
+        .section-title {
+            font-family: var(--font-family-header);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(0, 243, 255, 0.3) 0%, rgba(0, 243, 255, 0) 100%);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .value-display {
+            color: var(--secondary);
+            font-family: var(--font-family-header);
+            font-weight: 700;
+            background: rgba(0, 255, 170, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        /* Sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            outline: none;
+            transition: background 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--primary);
+            transition: transform 0.1s, background 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #ffffff;
+        }
+
+        /* Botones Miradores */
+        .grid-miradores {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .btn-mirador {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: left;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .btn-mirador span.peak-height {
+            font-size: 9px;
+            color: var(--text-muted);
+        }
+
+        .btn-mirador:hover {
+            background: rgba(0, 243, 255, 0.08);
+            border-color: var(--primary);
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn-mirador.active {
+            background: rgba(0, 243, 255, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
+        }
+
+        /* Botones de acción especial (Drenaje/Vaciado) */
+        .btn-action {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.2) 0%, rgba(0, 255, 170, 0.2) 100%);
+            border: 1px solid var(--primary);
+            color: #ffffff;
+            font-family: var(--font-family-header);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .btn-action:hover {
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.4) 0%, rgba(0, 255, 170, 0.4) 100%);
+            transform: scale(1.02);
+        }
+
+        /* Toggles Capas */
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            padding: 4px 0;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.15);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--secondary);
+            box-shadow: 0 0 8px var(--secondary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(14px);
+        }
+
+        /* Panel Informativo / Leyendas Míticas y Geológicas */
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 400px;
+            z-index: 10;
+            background: var(--bg-dark);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            display: none;
+            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .info-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        .info-title {
+            font-family: var(--font-family-header);
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .info-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .info-close:hover {
+            color: #ffffff;
+        }
+
+        .info-body {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #d1dce7;
+            max-height: 200px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        .info-body p {
+            margin-bottom: 8px;
+        }
+
+        .info-body p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Estado del Visor (Carga) */
+        #loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #020508;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            transition: opacity 0.8s ease;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 243, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #loader-text {
+            font-family: var(--font-family-header);
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* Notificación Flotante */
+        .toast-notif {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 170, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--secondary);
+            border-radius: 8px;
+            padding: 12px 18px;
+            color: #ffffff;
+            font-size: 12px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,255,170,0.2);
+            animation: slideIn 0.3s forwards, fadeOutToast 0.5s 4.5s forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOutToast {
+            to { opacity: 0; transform: translateY(-10px); visibility: hidden; }
+        }
+
+        /* Media Queries para Pantallas Pequeñas */
+        @media (max-width: 480px) {
+            .hud-panel {
+                width: calc(100vw - 20px);
+                top: 10px;
+                left: 10px;
+                max-height: 60vh;
+                padding: 16px;
+            }
+            .info-panel {
+                width: calc(100vw - 20px);
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loader de Entrada -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <div id="loader-text">Iniciando Visor de la Sabana...</div>
+    </div>
+
+    <!-- Contenedor del Globo Cesium -->
+    <div id="cesiumContainer"></div>
+
+    <!-- HUD Lateral Izquierdo de Controles -->
+    <div class="hud-panel">
+        <header>
+            <h1>Sabana Ancestral</h1>
+            <div class="subtitle">El Espejo de Agua de la Sabana de Bogotá</div>
+        </header>
+
+        <!-- Sección 1: Espejo de Agua -->
+        <div>
+            <div class="section-title">El Lago Ancestral (Humboldt)</div>
+            <div class="control-group">
+                <div class="label-row">
+                    <span>Nivel del Espejo de Agua</span>
+                    <span class="value-display" id="waterLevelDisplay">2575 msnm</span>
+                </div>
+                <input type="range" id="waterSlider" min="2530" max="2605" value="2575">
+                <div class="label-row" style="font-size: 9px; color: var(--text-muted); margin-top: 4px;">
+                    <span>Valle Seco (~2530m)</span>
+                    <span>Gran Laguna (~2600m)</span>
+                </div>
+            </div>
+            
+            <button class="btn-action" style="margin-top: 10px;" id="btnDrenar">
+                🌊 Simular Apertura del Tequendama
+            </button>
+        </div>
+
+        <!-- Sección 2: El Sol e Iluminación Dinámica -->
+        <div>
+            <div class="section-title">Sol y Sombras Dinámicas</div>
+            <div class="control-group">
+                <div class="label-row">
+                    <span>Hora del Día (Reloj Solar)</span>
+                    <span class="value-display" id="timeLabel">12:00</span>
+                </div>
+                <input type="range" id="timeSlider" min="300" max="1200" value="720">
+                <div class="label-row" style="font-size: 9px; color: var(--text-muted); margin-top: 4px;">
+                    <span>Amanecer (05:00)</span>
+                    <span>Atardecer (20:00)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 3: Miradores desde Picos Sagrados -->
+        <div>
+            <div class="section-title">Miradores en Cumbres Sagradas</div>
+            <div class="grid-miradores" id="peakGrid">
+                <!-- Generado dinámicamente con JS -->
+            </div>
+        </div>
+
+        <!-- Sección 4: Capas y Red Hídrica -->
+        <div>
+            <div class="section-title">Caminos del Agua y Capas</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="toggle-row">
+                    <span>Ríos e Hidrografía Antigua</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggleRivers" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-row">
+                    <span>Camellones Hidráulicos Muiscas</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggleCamellones" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-row">
+                    <span>Hitos de los Cerros (Marcadores)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggleMarkers" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de Información Contextual (Bottom Right) -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-panel-header">
+            <span class="info-title" id="infoTitle">Título del Hito</span>
+            <button class="info-close" onclick="closeInfoPanel()">&times;</button>
+        </div>
+        <div class="info-body" id="infoContent">
+            Contenido descriptivo del hito...
+        </div>
+    </div>
+
+    <script>
+        // Token Cesium Ion verificado y activo del usuario
+        const ION_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMTZiNWVjNi1jZTI3LTRjNjktOTUwMi04NWZlYTdiM2M4ZDIiLCJpZCI6MzAyNTUwLCJpYXQiOjE3NDcyNjA3MDV9.a54xRw4uqeucut0ipo8dcYrycXNHMkq4YtoXThS4taU';
+        Cesium.Ion.defaultAccessToken = ION_TOKEN;
+
+        let viewer;
+        let waterPrimitive;
+        let waterEntity;
+        let waterMaterial;
+        let currentWaterHeight = 2575.0; // Altura inicial razonable
+        let drainageInterval = null;
+
+        // Base de Datos Geográfica de Cerros Sagrados y Miradores
+        const PEAKS = [
+            {
+                id: 'juaica',
+                name: 'Cerro Juaica',
+                desc: 'La majestuosa "Puerta de los Dioses" (entre Tabio y Tenjo), un lugar sagrado y místico de la mitología Muisca. Desde su cumbre a 3,110 msnm, se contempla una vista panorámica absolutamente perfecta del espejo de agua en el sector norte de la Sabana. Los indígenas adoraban este cerro para comunicarse con el cosmos.',
+                lat: 4.8872,
+                lon: -74.1166,
+                camHeight: 3120, // Altura de cámara ligeramente arriba de la cumbre
+                heading: 140.0, // Mirando hacia el sur-este (centro de la Sabana)
+                pitch: -12.0,
+                altitude: 3100
+            },
+            {
+                id: 'majui',
+                name: 'Cerro Majui',
+                desc: 'Ubicado en el resguardo indígena de Cota (3,050 msnm). Era el cerro guardián del occidente y el viento. De pie en el Majui, se tiene una visual clara sobre las riberas donde floreció la gran cultura hidráulica muisca del río Funza, admirando las bahías lacustres occidentales.',
+                lat: 4.8105,
+                lon: -74.1350,
+                camHeight: 3060,
+                heading: 95.0, // Mirando hacia el oriente (Monserrate / Suba)
+                pitch: -10.0,
+                altitude: 3030
+            },
+            {
+                id: 'covadonga',
+                name: 'Cerro Covadonga',
+                desc: 'El prominente cerro tutelar de Sopó. Ofrece una espectacular visual hacia el Valle del río Teusacá y la represa del norte, marcando el estrecho cuello montañoso de la Sabana norte oriental donde la laguna se estrecha contra los farallones rocosos.',
+                lat: 4.9125,
+                lon: -73.9315,
+                camHeight: 2920,
+                heading: 245.0, // Mirando hacia el sur-oeste
+                pitch: -12.0,
+                altitude: 2890
+            },
+            {
+                id: 'tres_viejas',
+                name: 'Las Tres Viejas',
+                desc: 'Las tres cumbres imponentes de Suesca (~3,000 msnm). Representan el portal norte de la altiplanicie. Al mirar desde estas rocas hacia el sur, se observa el origen geográfico del gran lecho del río Funza abriéndose paso hacia las zonas llanas de la Sabana.',
+                lat: 5.0935,
+                lon: -73.7997,
+                camHeight: 3015,
+                heading: 210.0, // Mirando hacia el sur (centro de la Sabana)
+                pitch: -14.0,
+                altitude: 2980
+            },
+            {
+                id: 'suba',
+                name: 'Colina de Suba',
+                desc: 'La "isla central" en medio de la gran laguna de la Sabana. Con una altura de 2,700 msnm, la Colina de Suba quedaba rodeada por completo por el cuerpo de agua en épocas lacustres altas, ofreciendo un mirador excepcional de 360 grados sobre los humedales del centro y las orillas del oriente.',
+                lat: 4.7431,
+                lon: -74.0847,
+                camHeight: 2715,
+                heading: 0.0, // Mirando al norte
+                pitch: -10.0,
+                altitude: 2690
+            },
+            {
+                id: 'monserrate',
+                name: 'Monserrate',
+                desc: 'Hito sagrado del oriente (3,152 msnm). En la época muisca era adorado como un cerro solar masculino. Desde aquí se contempla todo el plano del lago extendiéndose hacia el occidente, con el sol poniéndose en el espejo del agua al caer la tarde.',
+                lat: 4.6053,
+                lon: -74.0555,
+                camHeight: 3165,
+                heading: 285.0, // Mirando hacia el occidente (atardecer)
+                pitch: -12.0,
+                altitude: 3152
+            },
+            {
+                id: 'guadalupe',
+                name: 'Guadalupe',
+                desc: 'El gemelo sagrado de Monserrate (3,260 msnm). Adorado como cerro lunar. Brinda la vista a mayor altitud de la zona centro-sur de la sabana, permitiendo ver el nacimiento y meandros del antiguo río Tunjuelito y la cuenca de Soacha inundada.',
+                lat: 4.5905,
+                lon: -74.0538,
+                camHeight: 3275,
+                heading: 290.0, // Mirando hacia el occidente
+                pitch: -12.0,
+                altitude: 3260
+            },
+            {
+                id: 'la_pena',
+                name: 'Cerro La Peña',
+                desc: 'Hito oriental elevado al sur de Monserrate. Representaba el templo de las nubes y las brumas de los Cerros Orientales, permitiendo una amplia perspectiva de la cuenca baja e inundable donde hoy yace el sur de Bogotá y las riberas del Funza.',
+                lat: 4.5947,
+                lon: -74.0450,
+                camHeight: 3315,
+                heading: 295.0,
+                pitch: -15.0,
+                altitude: 3300
+            },
+            {
+                id: 'tequendama',
+                name: 'Salto del Tequendama',
+                desc: 'El legendario portal de desagüe de la Sabana de Bogotá (2,460 msnm). Según la mitología muisca, el dios civilizador Bochica rompió las rocas montañosas con su cetro de oro para dar salida al lago desbordado que inundaba la altiplanicie, creando la impresionante cascada e iniciando la vida terrestre organizada en la Sabana.',
+                lat: 4.5772,
+                lon: -74.2989,
+                camHeight: 2540,
+                heading: 240.0, // Mirando hacia el cañón del río abajo
+                pitch: -30.0,
+                altitude: 2460
+            }
+        ];
+
+        // Definición de Coordenadas del Polígono del Espejo de Agua (Sabana de Bogotá)
+        // Delimitamos una cuenca amplia. El terreno 3D (Cesium World Terrain) se encargará de recortar el agua
+        // dinámicamente según la topografía real, simulando orillas perfectas.
+        const BASIN_COORDS = Cesium.Cartesian3.fromDegreesArray([
+            -73.72, 5.15, // Chocontá (Noreste)
+            -73.65, 4.90, // Guasca (Oriente)
+            -73.98, 4.50, // Cerros orientales / Usme (Sureste)
+            -74.30, 4.50, // Sibaté / Soacha (Sur)
+            -74.45, 4.70, // Facatativá (Occidente)
+            -74.42, 4.98, // Subachoque (Noroeste)
+            -74.15, 5.15  // Zipaquirá (Norte)
+        ]);
+
+        // Inicialización al cargar el DOM
+        window.addEventListener('load', async function() {
+            const loader = document.getElementById('loader');
+            const loaderText = document.getElementById('loader-text');
+
+            try {
+                loaderText.innerText = "Configurando terreno 3D real...";
+                
+                // 1. Cargar el proveedor de Terreno Cesium World Terrain (alta resolución)
+                const terrainProvider = await Cesium.createWorldTerrainAsync({
+                    requestVertexNormals: true, // Requerido para luces y sombras realistas
+                    requestWaterMask: true
+                });
+
+                loaderText.innerText = "Cargando mapa base satelital...";
+
+                // 2. Crear proveedor de imágenes satelitales (Sentinel-2 de Ion) para aspecto fotorrealista
+                const imageryProvider = await Cesium.createWorldImageryAsync({
+                    style: Cesium.IonWorldImageryStyle.AERIAL
+                });
+
+                loaderText.innerText = "Iniciando motor 3D...";
+
+                // 3. Crear el visor Cesium.Viewer
+                viewer = new Cesium.Viewer('cesiumContainer', {
+                    terrainProvider: terrainProvider,
+                    imageryProvider: imageryProvider,
+                    baseLayerPicker: false, // Desactivado para simplificar la interfaz
+                    geocoder: false,
+                    homeButton: false,
+                    infoBox: false,
+                    selectionIndicator: false,
+                    navigationHelpButton: false,
+                    sceneModePicker: false,
+                    timeline: false,
+                    animation: false,
+                    shadows: true // Habilitar sombras dinámicas globales
+                });
+
+                // 4. Activar sistema de sombras e iluminación solar hiperrealista
+                viewer.scene.globe.enableLighting = true; // Activa iluminación del sol basada en la hora
+                viewer.shadows = true;
+                viewer.terrainShadows = Cesium.ShadowMode.RECEIVE_ONLY; // Sombras dinámicas sobre el relieve
+                viewer.scene.globe.shadows = Cesium.ShadowMode.RECEIVE_ONLY;
+                
+                // 5. Configurar el cielo y atmósfera fotorrealista
+                viewer.scene.skyAtmosphere.show = true;
+                viewer.scene.globe.showWaterEffect = true;
+
+                // 6. Vista inicial enfocando la Sabana de Bogotá a gran altura
+                viewer.camera.setView({
+                    destination: Cesium.Cartesian3.fromDegrees(-74.0817, 4.7000, 100000.0), // Longitud, Latitud, Altitud
+                    orientation: {
+                        heading: Cesium.Math.toRadians(0.0),
+                        pitch: Cesium.Math.toRadians(-90.0), // Mirando directamente hacia abajo
+                        roll: 0.0
+                    }
+                });
+
+                loaderText.innerText = "Modelando el espejo de agua...";
+
+                // 7. Crear el Espejo de Agua hiperrealista utilizando el Water Material de Cesium
+                waterMaterial = new Cesium.Material({
+                    fabric: {
+                        type: 'Water',
+                        uniforms: {
+                            // Textura de normales para simular el oleaje en Cesium
+                            normalMap: Cesium.buildModuleUrl('Assets/Textures/waterNormals.jpg'),
+                            frequency: 900.0,       // Escala de las olas
+                            animationSpeed: 0.03,  // Velocidad de movimiento del agua
+                            amplitude: 5.0,        // Altura de las olas
+                            specularIntensity: 0.95, // Brillo/reflejo del sol
+                            fadeFactor: 0.35,
+                            baseWaterColor: new Cesium.Color(0.04, 0.22, 0.35, 0.65), // Teal profundo translúcido
+                            blendColor: new Cesium.Color(0.1, 0.8, 0.6, 0.35) // Resplandor en orillas bajas
+                        }
+                    }
+                });
+
+                // Creamos la Entidad Polígono con CallbackProperty para que la altura cambie fluidamente al arrastrar el slider
+                waterEntity = viewer.entities.add({
+                    name: 'Gran Laguna de la Sabana',
+                    polygon: {
+                        hierarchy: BASIN_COORDS,
+                        height: new Cesium.CallbackProperty(function() {
+                            return currentWaterHeight;
+                        }, false),
+                        material: waterMaterial,
+                        outline: false
+                    }
+                });
+
+                // 8. Inicializar los miradores en la UI
+                initPeakControls();
+
+                // 9. Dibujar la Red Hídrica Ancestral (Ríos)
+                drawAncestralRivers();
+
+                // 10. Modelar los Camellones Muiscas
+                drawPrecolombianCamellones();
+
+                // 11. Agregar marcadores visuales en las cumbres
+                drawPeakMarkers();
+
+                // 12. Sincronizar UI del sol y hora
+                updateTimeOfDay(720); // 12:00 del mediodía por defecto
+                
+                // 13. Ocultar Loader
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    showToast("¡Visor cargado! Explora la Sabana y teletranspórtate a Juaica.");
+                }, 800);
+
+            } catch (error) {
+                console.error("Error crítico de inicialización de Cesium:", error);
+                loaderText.innerHTML = `<span style="color:red; font-weight:bold;">Error Fatal: No se pudo cargar CesiumJS.</span><br><br>${error.message || error.toString()}<br><br><span style="font-size:10px;color:gray;">Verifica tu token y consola (F12)</span>`;
+                const spinner = loader.querySelector('.spinner');
+                if (spinner) spinner.style.borderTopColor = 'red';
+            }
+        });
+
+        // --- INICIALIZACIÓN DE CONTROLES DE LA UI ---
+
+        // Genera los botones de los miradores sagrados en el panel
+        function initPeakControls() {
+            const peakGrid = document.getElementById('peakGrid');
+            PEAKS.forEach(peak => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-mirador';
+                btn.id = `btn-${peak.id}`;
+                btn.onclick = () => selectPeak(peak);
+
+                btn.innerHTML = `
+                    <strong>${peak.name}</strong>
+                    <span class="peak-height">${peak.altitude} msnm</span>
+                `;
+                peakGrid.appendChild(btn);
+            });
+
+            // Configurar el Slider de Agua
+            const waterSlider = document.getElementById('waterSlider');
+            const waterDisplay = document.getElementById('waterLevelDisplay');
+            waterSlider.addEventListener('input', function(e) {
+                const val = parseFloat(e.target.value);
+                currentWaterHeight = val;
+                waterDisplay.innerText = `${val} msnm`;
+            });
+
+            // Configurar el Slider del Sol (Reloj)
+            const timeSlider = document.getElementById('timeSlider');
+            timeSlider.addEventListener('input', function(e) {
+                updateTimeOfDay(parseInt(e.target.value));
+            });
+
+            // Botón de Drenaje del Tequendama
+            const btnDrenar = document.getElementById('btnDrenar');
+            btnDrenar.addEventListener('click', toggleTequendamaDrainage);
+
+            // Switches de Capas
+            document.getElementById('toggleRivers').addEventListener('change', function(e) {
+                toggleEntityGroup('rio', e.target.checked);
+            });
+            document.getElementById('toggleCamellones').addEventListener('change', function(e) {
+                toggleEntityGroup('camellon', e.target.checked);
+            });
+            document.getElementById('toggleMarkers').addEventListener('change', function(e) {
+                toggleEntityGroup('marcador', e.target.checked);
+            });
+        }
+
+        // --- CÁLCULO DE HORA DEL DÍA Y RELOJ SOLAR ---
+        function updateTimeOfDay(minutes) {
+            const hour = Math.floor(minutes / 60);
+            const min = minutes % 60;
+            
+            // Base: Equinoccio de Primavera, Marzo 20, 2026 para tener hermosas sombras este-oeste
+            const date = new Date(2026, 2, 20, hour, min, 0);
+            const julianDate = Cesium.JulianDate.fromDate(date);
+            viewer.clock.currentTime = julianDate;
+            viewer.clock.shouldAnimate = false; // Mantenemos estática la hora elegida
+            
+            // Mostrar texto formateado en la interfaz
+            const formattedHour = hour.toString().padStart(2, '0');
+            const formattedMin = min.toString().padStart(2, '0');
+            document.getElementById('timeLabel').innerText = `${formattedHour}:${formattedMin}`;
+
+            // Efecto atmosférico dramático según la hora (noche vs día)
+            if (hour < 6 || hour > 18) {
+                viewer.scene.globe.atmosphereBrightnessShift = -0.55;
+            } else if (hour === 6 || hour === 18) {
+                // Amanecer / atardecer dramático
+                viewer.scene.globe.atmosphereBrightnessShift = -0.2;
+            } else {
+                viewer.scene.globe.atmosphereBrightnessShift = 0.0;
+            }
+        }
+
+        // --- TELETRANSPORTE A MIRADORES (CUMBRE EN PRIMERA PERSONA) ---
+        function selectPeak(peak) {
+            // Desmarcar todos los botones
+            document.querySelectorAll('.btn-mirador').forEach(btn => btn.classList.remove('active'));
+            // Marcar botón activo
+            document.getElementById(`btn-${peak.id}`).classList.add('active');
+
+            showToast(`Volando a la cumbre de ${peak.name}...`);
+
+            // Vuelo cinematográfico a la cima sagrada
+            viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(peak.lon, peak.lat, peak.camHeight),
+                orientation: {
+                    heading: Cesium.Math.toRadians(peak.heading),
+                    pitch: Cesium.Math.toRadians(peak.pitch),
+                    roll: 0.0
+                },
+                duration: 3.5, // 3.5 segundos de hermosa transición fluida
+                complete: function() {
+                    // Abrir panel informativo al finalizar el vuelo
+                    document.getElementById('infoTitle').innerText = peak.name;
+                    document.getElementById('infoContent').innerHTML = `
+                        <p><strong>Altitud del pico:</strong> ${peak.altitude} msnm</p>
+                        <p style="margin-top:8px;">${peak.desc}</p>
+                        <p style="margin-top:8px; font-style:italic; font-size:10px; color:var(--primary);">
+                            *Tip: Ajusta el control del Sol para ver cómo rebotan los rayos solares y las sombras de las montañas sobre el espejo de agua a tus pies.
+                        </p>
+                    `;
+                    document.getElementById('infoPanel').style.display = 'block';
+                }
+            });
+        }
+
+        function closeInfoPanel() {
+            document.getElementById('infoPanel').style.display = 'none';
+        }
+
+        // --- SIMULACIÓN DE DRENAJE DEL TEQUENDAMA (ANIMACIÓN) ---
+        function toggleTequendamaDrainage() {
+            const btn = document.getElementById('btnDrenar');
+            const waterSlider = document.getElementById('waterSlider');
+            const waterDisplay = document.getElementById('waterLevelDisplay');
+
+            if (drainageInterval) {
+                // Pausar drenaje
+                clearInterval(drainageInterval);
+                drainageInterval = null;
+                btn.innerHTML = "🌊 Simular Apertura del Tequendama";
+                btn.style.borderColor = 'var(--primary)';
+                showToast("Simulación pausada.");
+                return;
+            }
+
+            // Iniciar drenaje desde la cota actual
+            showToast("Iniciando drenaje mítico. Abriendo el Salto del Tequendama...");
+            btn.innerHTML = "⏸ Pausar Simulación de Desagüe";
+            btn.style.borderColor = 'var(--accent)';
+
+            // Mostrar el panel de información narrando el mito
+            document.getElementById('infoTitle').innerText = "El Vaciado de la Laguna: Bochica y el Tequendama";
+            document.getElementById('infoContent').innerHTML = `
+                <p><strong>Mito de Bochica:</strong> Cuentan los mayores Muiscas que Chibchacum, dios de las lluvias y la labranza, se enfureció e inundó la Sabana con una terrible tempestad, obligando a los indígenas a huir a los picos de las montañas (como Juaica y Majui).</p>
+                <p style="margin-top:6px;">Desesperados, invocaron al dios civilizador <strong>Bochica</strong>. Él se posó sobre el arco iris oriental con un báculo de oro y golpeó la roca del sur. Al instante, la montaña se partió en dos, dando origen a la gran caída de agua del <strong>Salto del Tequendama</strong>.</p>
+                <p style="margin-top:6px; color:var(--primary); font-weight:bold;">Observa cómo retrocede el agua y emergen los ríos y los camellones fértiles en el plano de la Sabana...</p>
+            `;
+            document.getElementById('infoPanel').style.display = 'block';
+
+            // Volar la cámara hacia el Salto del Tequendama para ver el desagüe de cerca
+            viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(-74.24, 4.60, 22000.0), // Vista aérea amplia del suroeste
+                orientation: {
+                    heading: Cesium.Math.toRadians(240.0),
+                    pitch: Cesium.Math.toRadians(-28.0),
+                    roll: 0.0
+                },
+                duration: 3.0
+            });
+
+            drainageInterval = setInterval(() => {
+                if (currentWaterHeight > 2530) {
+                    currentWaterHeight -= 0.5; // Baja de a medio metro en cada iteración
+                    waterSlider.value = currentWaterHeight;
+                    waterDisplay.innerText = `${Math.round(currentWaterHeight)} msnm`;
+                } else {
+                    // Drenaje completado (laguna seca)
+                    clearInterval(drainageInterval);
+                    drainageInterval = null;
+                    btn.innerHTML = "🌊 Reiniciar Laguna";
+                    btn.onclick = reiniciarInundacion;
+                    showToast("¡Vaciado completo! Se ha tejido el camino del agua ancestral.");
+                }
+            }, 60);
+        }
+
+        function reiniciarInundacion() {
+            const btn = document.getElementById('btnDrenar');
+            const waterSlider = document.getElementById('waterSlider');
+            const waterDisplay = document.getElementById('waterLevelDisplay');
+
+            currentWaterHeight = 2575.0;
+            waterSlider.value = currentWaterHeight;
+            waterDisplay.innerText = `2575 msnm`;
+            
+            btn.innerHTML = "🌊 Simular Apertura del Tequendama";
+            btn.onclick = toggleTequendamaDrainage;
+            showToast("Laguna inundada de nuevo.");
+            
+            // Volver a centrar en la Sabana
+            viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(-74.0817, 4.7000, 100000.0),
+                orientation: {
+                    heading: 0.0,
+                    pitch: Cesium.Math.toRadians(-90.0),
+                    roll: 0.0
+                },
+                duration: 2.5
+            });
+        }
+
+        // --- MODELADO DE LA RED HÍDRICA (RÍOS ANCESTRALES) ---
+        function drawAncestralRivers() {
+            const RIVERS_DATA = [
+                {
+                    name: 'Río Funza (Bogotá)',
+                    coords: [
+                        -73.80, 5.10, -73.88, 5.02, -73.98, 4.96, 
+                        -74.03, 4.86, -74.10, 4.82, -74.15, 4.76, 
+                        -74.22, 4.71, -74.25, 4.63, -74.2989, 4.5772
+                    ],
+                    width: 5
+                },
+                {
+                    name: 'Río Tunjuelito',
+                    coords: [
+                        -74.08, 4.50, -74.12, 4.56, -74.15, 4.59, 
+                        -74.18, 4.62, -74.25, 4.63
+                    ],
+                    width: 3.5
+                },
+                {
+                    name: 'Río Frío',
+                    coords: [
+                        -74.13, 4.95, -74.10, 4.88, -74.04, 4.85
+                    ],
+                    width: 3
+                },
+                {
+                    name: 'Río Teusacá',
+                    coords: [
+                        -74.01, 4.67, -74.00, 4.75, -73.96, 4.82, -73.99, 4.88
+                    ],
+                    width: 3
+                },
+                {
+                    name: 'Río San Francisco',
+                    coords: [
+                        -74.05, 4.60, -74.07, 4.605, -74.15, 4.61
+                    ],
+                    width: 2.5
+                },
+                {
+                    name: 'Río San Agustín',
+                    coords: [
+                        -74.05, 4.59, -74.08, 4.592, -74.14, 4.60
+                    ],
+                    width: 2.5
+                },
+                {
+                    name: 'La Salitrosa',
+                    coords: [
+                        -74.06, 4.73, -74.11, 4.735, -74.16, 4.74
+                    ],
+                    width: 2
+                },
+                {
+                    name: 'Quebrada Yomasa',
+                    coords: [
+                        -74.09, 4.53, -74.11, 4.54, -74.13, 4.55
+                    ],
+                    width: 2
+                }
+            ];
+
+            RIVERS_DATA.forEach(river => {
+                viewer.entities.add({
+                    name: river.name,
+                    group: 'rio', // Identificador para encender/apagar la capa
+                    polyline: {
+                        positions: Cesium.Cartesian3.fromDegreesArray(river.coords),
+                        width: river.width,
+                        material: new Cesium.ColorMaterialProperty(Cesium.Color.fromCssString('#00f3ff')),
+                        clampToGround: true // Hace que dibuje perfectamente sobre la topografía 3D de las montañas
+                    }
+                });
+            });
+        }
+
+        // --- MODELADO DE CAMELLONES AGRÍCOLAS PRECOLOMBINOS ---
+        function drawPrecolombianCamellones() {
+            // Región fértil del humedal de Funza/Cota donde florecieron los camellones
+            const camellonesRegion1 = Cesium.Cartesian3.fromDegreesArray([
+                -74.18, 4.76,
+                -74.14, 4.76,
+                -74.15, 4.71,
+                -74.19, 4.71
+            ]);
+
+            const camellonesRegion2 = Cesium.Cartesian3.fromDegreesArray([
+                -74.13, 4.82,
+                -74.09, 4.82,
+                -74.11, 4.79,
+                -74.15, 4.79
+            ]);
+
+            // Se dibuja un polígono de trama geométrica luminosa verde brillante sitado a ~2555 msnm (el lecho plano).
+            // Quedará bajo el agua cuando la laguna suba y emergerá en su esplendor geométrico cuando baje.
+            viewer.entities.add({
+                name: 'Sistemas Hidráulicos de Camellones (Funza)',
+                group: 'camellon',
+                polygon: {
+                    hierarchy: camellonesRegion1,
+                    material: Cesium.Color.fromCssString('#00ffaa').withAlpha(0.22),
+                    outline: true,
+                    outlineColor: Cesium.Color.fromCssString('#00ffaa'),
+                    outlineWidth: 3,
+                    height: 2555.0 // Altura sobre el lecho del humedal
+                }
+            });
+
+            viewer.entities.add({
+                name: 'Camellones de Cultivo Muisca (Cota)',
+                group: 'camellon',
+                polygon: {
+                    hierarchy: camellonesRegion2,
+                    material: Cesium.Color.fromCssString('#00ffaa').withAlpha(0.22),
+                    outline: true,
+                    outlineColor: Cesium.Color.fromCssString('#00ffaa'),
+                    outlineWidth: 3,
+                    height: 2555.0
+                }
+            });
+        }
+
+        // --- DIBUJO DE MARCADORES EN CUMBRES SAGRADAS ---
+        function drawPeakMarkers() {
+            PEAKS.forEach(peak => {
+                viewer.entities.add({
+                    name: peak.name,
+                    group: 'marcador',
+                    position: Cesium.Cartesian3.fromDegrees(peak.lon, peak.lat, peak.altitude + 20), // Pin flotando 20m sobre cumbre
+                    billboard: {
+                        image: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="%2300f3ff" stroke="%23ffffff" stroke-width="1.5"/></svg>',
+                        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                        heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND
+                    },
+                    label: {
+                        text: peak.name,
+                        font: 'bold 11px Outfit, sans-serif',
+                        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                        fillColor: Cesium.Color.WHITE,
+                        outlineColor: Cesium.Color.BLACK,
+                        outlineWidth: 4,
+                        verticalOrigin: Cesium.VerticalOrigin.TOP,
+                        pixelOffset: new Cesium.Cartesian2(0, 10),
+                        heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND
+                    }
+                });
+            });
+        }
+
+        // --- SISTEMA DE GESTIÓN DE CAPAS (MOSTRAR/OCULTAR) ---
+        function toggleEntityGroup(groupName, isVisible) {
+            const entities = viewer.entities.values;
+            entities.forEach(entity => {
+                if (entity.group === groupName) {
+                    entity.show = isVisible;
+                }
+            });
+        }
+
+        // --- TOAST NOTIFICATIONS ---
+        function showToast(message) {
+            // Eliminar toast anterior si existe
+            const oldToast = document.querySelector('.toast-notif');
+            if (oldToast) oldToast.remove();
+
+            const toast = document.createElement('div');
+            toast.className = 'toast-notif';
+            toast.innerHTML = `
+                <span>⚡</span>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+        }
+    </script>
+</body>
+</html>
