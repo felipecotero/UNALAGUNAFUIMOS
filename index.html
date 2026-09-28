@@ -223,8 +223,13 @@
                     <button class="btn-small" id="btnDrain">🌊 Abrir el Tequendama</button>
                     <button class="btn-small" id="btnFill">🌧️ Volver a llenar</button>
                 </div>
-                <label class="toggle" style="margin-top:10px"><span>🏙️ Bogotá en el tiempo (ligada al nivel del agua)</span><input type="checkbox" id="toggleHistory" checked></label>
-                <p class="hint">Al bajar el agua avanza el tiempo: territorio muisca, plano colonial de 1791, plano de 1938, crecimiento 1985–2015 con ortofotos de Catastro y la ciudad de hoy.</p>
+                <span class="label">Cartografía de Bogotá en el tiempo</span>
+                <label class="toggle"><span>🏙️ Mostrar Bogotá en el tiempo</span><input type="checkbox" id="toggleHistory" checked></label>
+                <div class="range-ends" style="margin-top:6px"><span>🗓️ Año de la cartografía</span><span id="yearVal">Laguna</span></div>
+                <input type="range" id="yearSlider" min="1400" max="2025" step="1" value="1400" aria-label="Año de la cartografía">
+                <div class="range-ends"><span>Laguna · Muisca</span><span>1538 · 1831 · 1985 · hoy</span></div>
+                <label class="toggle"><span>🔗 Ligar el año al nivel del agua</span><input type="checkbox" id="toggleLink" checked></label>
+                <p class="hint">Con el enlace activo, al bajar el agua avanza el tiempo. Desactívalo (o mueve el año) para recorrer la cartografía libremente: territorio muisca, plano colonial de 1791, plano de 1938, crecimiento 1985–2015 con ortofotos de Catastro (1998–2017) y la ciudad de hoy.</p>
                 <p class="hint">Atajo: <b>Ctrl + rueda</b> (o pellizco en el trackpad) sube y baja el agua. La sonda inferior indica la profundidad bajo el cursor.</p>
                 <p class="hint">Los niveles son una aproximación poética y pedagógica del antiguo lago (Lago Humboldt) sobre el relieve actual.</p>
             </section>
@@ -1355,19 +1360,28 @@
             ],
             COLONIAL: [['Fundación de Santafé, 1538 (Chorro de Quevedo)', 4.5974, -74.0687], ['Plaza Mayor (hoy Plaza de Bolívar)', 4.59817, -74.07600]],
 
-            era(L) {
+            // Año que corresponde a un nivel del agua (cuando la cartografía va ligada a la laguna)
+            yearForLevel(L) {
                 const lerp = (a, b, t) => Math.round(a + (b - a) * clamp(t, 0, 1));
-                if (L >= 2600) return { key: 'laguna', wsf: 0, text: 'Laguna de la Sabana · hace ~12.500 años' };
-                if (L >= 2586) return { key: 'muisca', wsf: 0, markers: 'muisca', text: 'Territorio muisca · antes de 1538' };
-                if (L >= 2574) { const y = lerp(1538, 1830, (2586 - L) / 12);
-                    return { key: 'colonia', wsf: 0, plan: 1816, markers: 'colonial', text: `Santafé colonial · ≈${y} · plano de 1791 (copia de 1816)` }; }
-                if (L >= 2565) { const y = lerp(1831, 1984, (2574 - L) / 9);
-                    return { key: 'republica', wsf: 0, plan: 1938, text: `Bogotá republicana · ≈${y} · plano IGM de 1938` }; }
-                if (L >= 2547) { const y = lerp(1985, 2015, (2565 - L) / 18);
+                if (L >= 2600) return this.LAGUNA;
+                if (L >= 2586) return lerp(1450, 1537, (2600 - L) / 14);
+                if (L >= 2574) return lerp(1538, 1830, (2586 - L) / 12);
+                if (L >= 2565) return lerp(1831, 1984, (2574 - L) / 9);
+                if (L >= 2547) return lerp(1985, 2015, (2565 - L) / 18);
+                return lerp(2016, 2025, (2547 - L) / 7);
+            },
+            LAGUNA: 1400,   // posición del deslizador que representa la laguna (hace ~12.500 años)
+
+            era(y) {
+                if (y <= this.LAGUNA) return { key: 'laguna', wsf: 0, text: 'Laguna de la Sabana · hace ~12.500 años' };
+                if (y < 1538) return { key: 'muisca', wsf: 0, markers: 'muisca', text: 'Territorio muisca · antes de 1538' };
+                if (y <= 1830) return { key: 'colonia', wsf: 0, plan: 1816, markers: 'colonial', text: `Santafé colonial · ${y} · plano de 1791 (copia de 1816)` };
+                if (y <= 1984) return { key: 'republica', wsf: 0, plan: 1938, text: `Bogotá republicana · ${y} · plano IGM de 1938` };
+                if (y <= 2015) {
                     const ortho = this.ORTHOS.filter((o) => o <= y).pop();
-                    return { key: 'wsf' + y, wsf: y, ortho, text: `Bogotá ${y} · huella urbana (WSF, DLR)` + (ortho ? ` · ortofoto Catastro ${ortho}` : '') }; }
-                const y = lerp(2016, 2025, (2547 - L) / 7);
-                return { key: 'hoy', wsf: 3000, text: `Bogotá hoy (≈${y}) · imagen satelital actual` };
+                    return { key: 'wsf' + y, wsf: y, ortho, text: `Bogotá ${y} · huella urbana (WSF, DLR)` + (ortho ? ` · ortofoto Catastro ${ortho}` : '') };
+                }
+                return { key: 'hoy', wsf: 3000, text: `Bogotá hoy (${y}) · imagen satelital actual` };
             },
 
             async layer(key, make) {
@@ -1407,9 +1421,16 @@
                 mk(this.COLONIAL, Cesium.Color.fromCssColorString('#f472b6'), 'colonial');
             },
 
+            linked: true,
             update(L) {
-                const e = this.era(L);
-                if (this.current && e.key === this.current.key) return;
+                if (this.linked) this.setYear(this.yearForLevel(L));
+            },
+            setYear(y) {
+                const slider = $('yearSlider');
+                slider.value = y;
+                $('yearVal').textContent = y <= this.LAGUNA ? 'Laguna' : (y < 1538 ? 'Muisca' : String(y));
+                const e = this.era(y);
+                if (this.current && e.key === this.current.key) { this.current.text = e.text; $('eraNote').textContent = this.enabled ? e.text : ''; return; }
                 this.current = e;
                 this.year = e.wsf;
                 // cargar lo necesario (solo la primera vez)
@@ -1811,7 +1832,13 @@
             const leaveAncestral = () => { if (mapStyle === 'ancestral' && layerTownsBeforeAncestral) { $('layerTowns').checked = true; showLayer('towns', true); } };
             $('styleSat').addEventListener('click', () => { leaveAncestral(); mapStyle = 'sat'; History.apply(); });
             $('styleWhite').addEventListener('click', () => { leaveAncestral(); mapStyle = 'white'; History.apply(); });
-            $('toggleHistory').addEventListener('change', (e) => { History.enabled = e.target.checked; History.current = null; History.update(level); });
+            $('toggleHistory').addEventListener('change', (e) => { History.enabled = e.target.checked; History.current = null; History.setYear(parseInt($('yearSlider').value, 10)); });
+            $('yearSlider').addEventListener('input', (e) => {
+                // mover el año a mano desliga la cartografía del nivel del agua
+                if (History.linked) { History.linked = false; $('toggleLink').checked = false; }
+                History.setYear(parseInt(e.target.value, 10));
+            });
+            $('toggleLink').addEventListener('change', (e) => { History.linked = e.target.checked; History.update(level); });
             $('styleAncestral').addEventListener('click', () => {
                 const first = mapStyle !== 'ancestral';
                 mapStyle = 'ancestral';
